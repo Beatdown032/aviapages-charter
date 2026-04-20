@@ -1,556 +1,441 @@
 /**
- * AviaPages Charter Suite — Frontend JS
- * Handles: airport autocomplete, flight/price calculators,
- *          aircraft search, empty legs, charter request form.
+ * AviaPages Charter Suite v2 — Frontend JS
+ *
+ * Calculator approach (confirmed from API debug 2026-04-18):
+ * The free API tier validates inputs but doesn't return full flight data.
+ * Full results (map, route, fuel, price) require the AviaPages web calculator.
+ *
+ * Strategy:
+ *  1. User fills our styled form (airport autocomplete, aircraft, date, time, pax)
+ *  2. We build the AviaPages calculator URL with inputs as query parameters
+ *  3. Load their full calculator in an iframe — user gets the complete experience
+ *     including map, route waypoints, fuel table, and price breakdown
+ *  4. "Open in New Tab" button lets them see it full-screen on AviaPages.com
  */
 (function ($) {
     'use strict';
 
-    const ajax  = aviaConfig.ajaxUrl;
-    const nonce = aviaConfig.nonce;
-    const currency = aviaConfig.currency || 'USD';
+    const CFG = {
+        ajaxUrl:     (typeof APC !== 'undefined') ? APC.ajaxUrl    : '',
+        nonce:       (typeof APC !== 'undefined') ? APC.nonce      : '',
+        currency:    (typeof APC !== 'undefined') ? APC.currency   : 'USD',
+        calcBase:    'https://aviapages.com/charter-flight-calculator/',
+        legacyBase:  'https://aviapages.com/flight_route_calculator/',
+    };
 
-    /* ══════════════════════════════════════════════════
-     *  UTILITIES
-     * ══════════════════════════════════════════════════ */
+    /* ─── Utilities ──────────────────────────────── */
 
-    function showError(selector, msg) {
-        const $el = $(selector);
+    function esc(s) { return $('<div>').text(String(s ?? '')).html(); }
+
+    function showAlert($w, msg) {
+        const $el = $w.find('.apc-alert--error').first();
         $el.text(msg).show();
-        setTimeout(() => $el.fadeOut(), 6000);
+        clearTimeout($el.data('_t'));
+        $el.data('_t', setTimeout(() => $el.fadeOut(400), 12000));
     }
 
-    function fmtMins(mins) {
-        if (!mins && mins !== 0) return '—';
-        const h = Math.floor(mins / 60);
-        const m = mins % 60;
-        return h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+    function hideAlert($w) { $w.find('.apc-alert--error').hide(); }
+
+    function setBusy($btn, on) {
+        $btn.prop('disabled', on);
+        $btn.find('.apc-btn__text').toggle(!on);
+        $btn.find('.apc-btn__loading').toggle(on);
     }
 
-    function fmtMoney(val) {
-        if (!val && val !== 0) return '—';
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency', currency: currency, maximumFractionDigits: 0
-        }).format(val);
+    /* ─── AJAX ───────────────────────────────────── */
+
+    function ajaxCall(method, action, data) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url:    CFG.ajaxUrl,
+                method: method,
+                data:   Object.assign({ action, nonce: CFG.nonce }, data || {}),
+            })
+            .done(res => {
+                if (res && res.success) resolve(res.data);
+                else reject((res && res.data && res.data.message) ? res.data.message : 'An error occurred.');
+            })
+            .fail((xhr, status) => {
+                console.error('[APC]', action, status, xhr.status);
+                reject('Network error — please check your connection.');
+            });
+        });
     }
 
-    function fmtNum(val, unit) {
-        if (!val && val !== 0) return '—';
-        return Math.round(val).toLocaleString() + (unit ? ' ' + unit : '');
-    }
+    const apiGet  = (action, data) => ajaxCall('GET',  action, data);
+    const apiPost = (action, data) => ajaxCall('POST', action, data);
 
-    function btnLoading($btn, loading) {
-        $btn.find('.avia-btn-text').toggle(!loading);
-        $btn.find('.avia-btn-loader').toggle(loading);
-        $btn.prop('disabled', loading);
-    }
+    /* ─── Airport autocomplete ───────────────────── */
 
-    /* ══════════════════════════════════════════════════
-     *  AIRPORT AUTOCOMPLETE
-     * ══════════════════════════════════════════════════ */
+    const acTimers = {};
 
-    let acTimers = {};
+    $(document).on('input', '.apc-airport-input', function () {
+        const $inp  = $(this);
+        const key   = $inp.data('field') || 'ac_' + Math.random();
+        const q     = $inp.val().trim();
+        const $wrap = $inp.closest('.apc-ac-wrap');
+        const $list = $wrap.find('.apc-ac-list').not('.apc-ac-list--profiles');
 
-    $(document).on('input', '.avia-airport-input', function () {
-        const $input = $(this);
-        const query  = $input.val().trim();
-        const $wrap  = $input.closest('.avia-autocomplete-wrap');
-        const $list  = $wrap.find('.avia-autocomplete-list');
-        const target = $input.data('target');
+        $wrap.find('.apc-airport-icao').val('');
+        $wrap.find('.apc-airport-name-full').val('');
+        $wrap.find('.apc-airport-tz').val('');
+        $wrap.find('.apc-ac-tag').text('').hide();
 
-        // Clear hidden val when typing
-        $('[name="' + target + '"]').val('');
+        if (q.length < 2) { $list.empty().hide(); return; }
 
-        if (query.length < 2) { $list.hide().empty(); return; }
-
-        clearTimeout(acTimers[target]);
-        acTimers[target] = setTimeout(() => {
-            $.get(ajax, { action: 'avia_search_airports', nonce, q: query }, function (res) {
+        clearTimeout(acTimers[key]);
+        acTimers[key] = setTimeout(async () => {
+            try {
+                const list = await apiGet('apc_airports', { q });
                 $list.empty();
-                if (!res.success || !res.data.length) { $list.hide(); return; }
-
-                res.data.forEach(ap => {
-                    $('<li>')
-                        .text(ap.label)
-                        .data('icao', ap.icao || ap.iata)
+                if (!Array.isArray(list) || !list.length) { $list.hide(); return; }
+                list.forEach(ap => {
+                    const code = ap.icao || ap.iata || '';
+                    $('<li>').attr({ role:'option', 'data-type':'airport' })
+                        .html('<strong>' + esc(code) + '</strong> ' + esc(ap.name) + ' <small>— ' + esc(ap.city) + ', ' + esc(ap.country) + '</small>')
+                        .data('ap', ap)
                         .appendTo($list);
                 });
-
                 $list.show();
-            });
-        }, 300);
+            } catch(_) { $list.hide(); }
+        }, 260);
     });
 
-    $(document).on('click', '.avia-autocomplete-list li', function () {
-        const $li   = $(this);
-        const $wrap = $li.closest('.avia-autocomplete-wrap');
-        const icao  = $li.data('icao');
-        const label = $li.text();
-        const $input = $wrap.find('.avia-airport-input');
-        const target = $input.data('target');
+    $(document).on('click', '.apc-ac-list:not(.apc-ac-list--profiles) li[data-type="airport"]', function (e) {
+        e.stopPropagation();
+        const ap    = $(this).data('ap');
+        const $wrap = $(this).closest('.apc-ac-wrap');
+        const code  = ap.icao || ap.iata || '';
 
-        $input.val(label);
-        $('[name="' + target + '"]').val(icao);
-        $wrap.find('.avia-autocomplete-list').hide().empty();
+        $wrap.find('.apc-airport-input').val(ap.name + ' (' + code + ')');
+        $wrap.find('.apc-airport-icao').val(code);
+        $wrap.find('.apc-airport-name-full').val(ap.name);
+        $wrap.find('.apc-airport-tz').val(ap.time_shift || '');
+        $wrap.find('.apc-ac-tag').text(code).show();
+        $(this).closest('.apc-ac-list').empty().hide();
+
+        // Show timezone on local time label if departure
+        if ($wrap.find('.apc-airport-input').data('field') === 'from') {
+            $('#apc-tz-label').text(ap.time_shift ? '(' + ap.time_shift + ')' : '');
+        }
     });
 
-    // Close dropdowns on outside click
+    /* ─── Aircraft profile autocomplete ─────────── */
+
+    let _profiles = null;
+
+    async function getProfiles() {
+        if (_profiles) return _profiles;
+        try {
+            const res = await apiGet('apc_aircraft_profiles', {});
+            _profiles = (res.results || []).filter(p => p.aircraft_type_icao);
+        } catch(e) { _profiles = []; }
+        return _profiles;
+    }
+
+    $(document).on('focus input', '#apc-profile-search', async function () {
+        const $inp  = $(this);
+        const q     = $inp.val().trim().toLowerCase();
+        const $list = $inp.closest('.apc-ac-wrap').find('.apc-ac-list--profiles');
+        const all   = await getProfiles();
+
+        const show = q
+            ? all.filter(p =>
+                (p.aircraft_type_name || '').toLowerCase().includes(q) ||
+                (p.name || '').toLowerCase().includes(q) ||
+                (p.aircraft_class_name || '').toLowerCase().includes(q) ||
+                (p.aircraft_type_icao || '').toLowerCase().includes(q))
+            : all.slice(0, 30);
+
+        $list.empty();
+        if (!show.length) { $list.hide(); return; }
+        show.slice(0, 30).forEach(p => {
+            $('<li>').attr({ role:'option', 'data-type':'profile' })
+                .html('<strong>' + esc(p.aircraft_type_name || p.name) + '</strong>&ensp;<small>' + esc(p.aircraft_class_name || '') + '</small>&ensp;<code style="font-size:.7rem;color:#b45309">' + esc(p.aircraft_type_icao || '') + '</code>')
+                .data('prof', p)
+                .appendTo($list);
+        });
+        $list.show();
+    });
+
+    $(document).on('click', '.apc-ac-list--profiles li[data-type="profile"]', function (e) {
+        e.stopPropagation();
+        const p = $(this).data('prof');
+        $(this).closest('.apc-ac-wrap').find('#apc-profile-search').val(p.aircraft_type_name || p.name);
+        $(this).closest('.apc-widget').find('#apc-aircraft-icao').val(p.aircraft_type_icao || '');
+        $(this).closest('.apc-widget').find('#apc-aircraft-name').val(p.aircraft_type_name || p.name || '');
+        $(this).closest('.apc-ac-list--profiles').empty().hide();
+    });
+
+    $(document).on('input', '#apc-profile-search', function () {
+        if (!$(this).val().trim()) {
+            $(this).closest('.apc-widget').find('#apc-aircraft-icao, #apc-aircraft-name').val('');
+        }
+    });
+
     $(document).on('click', function (e) {
-        if (!$(e.target).closest('.avia-autocomplete-wrap').length) {
-            $('.avia-autocomplete-list').hide().empty();
-        }
+        if (!$(e.target).closest('.apc-ac-wrap').length) $('.apc-ac-list').empty().hide();
     });
 
-    /* ══════════════════════════════════════════════════
-     *  SWAP BUTTON
-     * ══════════════════════════════════════════════════ */
+    /* ─── Swap airports ──────────────────────────── */
 
-    $(document).on('click', '.avia-swap-btn', function () {
-        const $row     = $(this).closest('.avia-row');
-        const $inputs  = $row.find('.avia-airport-input');
-        const $hiddens = $row.find('.avia-airport-val');
+    $(document).on('click', '.apc-swap', function () {
+        const $row = $(this).closest('.apc-form__row');
 
-        if ($inputs.length < 2) return;
+        const swap = (sel) => {
+            const $a = $row.find(sel).eq(0), $b = $row.find(sel).eq(1);
+            if (!$a.length || !$b.length) return;
+            const v = $a.val(); $a.val($b.val()); $b.val(v);
+        };
 
-        const t1 = $inputs.eq(0).val(), t2 = $inputs.eq(1).val();
-        const v1 = $hiddens.eq(0).val(), v2 = $hiddens.eq(1).val();
+        swap('.apc-airport-input');
+        swap('.apc-airport-icao');
+        swap('.apc-airport-name-full');
+        swap('.apc-airport-tz');
 
-        $inputs.eq(0).val(t2); $inputs.eq(1).val(t1);
-        $hiddens.eq(0).val(v2); $hiddens.eq(1).val(v1);
+        const $tags = $row.find('.apc-ac-tag');
+        const t0 = $tags.eq(0).text(), t1 = $tags.eq(1).text();
+        const s0 = $tags.eq(0).is(':visible'), s1 = $tags.eq(1).is(':visible');
+        $tags.eq(0).text(t1); s1 ? $tags.eq(0).show() : $tags.eq(0).hide();
+        $tags.eq(1).text(t0); s0 ? $tags.eq(1).show() : $tags.eq(1).hide();
+
+        const newTz = $row.find('.apc-airport-tz').eq(0).val();
+        $('#apc-tz-label').text(newTz ? '(' + newTz + ')' : '');
     });
 
-    /* ══════════════════════════════════════════════════
-     *  AIRCRAFT PROFILE SEARCH (for calculators)
-     * ══════════════════════════════════════════════════ */
+    /* ─── Advanced toggle ────────────────────────── */
 
-    function initProfileSearch(searchId, selectId) {
-        const $search = $('#' + searchId);
-        const $select = $('#' + selectId);
+    $(document).on('click', '.apc-advanced-toggle', function () {
+        const $p = $(this).closest('.apc-form').find('.apc-advanced-panel');
+        $p.slideToggle(200);
+        $(this).text($p.is(':visible') ? '✕ Close Advanced' : '⚙ Advanced');
+    });
 
-        if (!$search.length) return;
+    /* ═══════════════════════════════════════════════
+     *  CALCULATOR SUBMIT
+     *
+     *  Builds AviaPages calculator URL with all inputs
+     *  as query parameters, then loads it in an iframe.
+     *  This gives the FULL calculation experience:
+     *  map, route, fuel data, price breakdown.
+     * ═══════════════════════════════════════════════ */
 
-        let profileTimer;
-        $search.on('input', function () {
-            const q = $search.val().trim();
-            clearTimeout(profileTimer);
-            profileTimer = setTimeout(() => {
-                $.post(ajax, {
-                    action: 'avia_search_aircraft',
-                    nonce,
-                    name: q
-                }, function (res) {
-                    // Use aircraft_profiles endpoint via a custom ajax response
-                });
+    $(document).on('click', '.apc-calc-submit', function () {
+        const $btn    = $(this);
+        const $widget = $btn.closest('.apc-widget');
 
-                // Actually use profiles endpoint via flight calc action
-                $.get(ajax, {
-                    action: 'avia_search_airports', // reuse for profile — we'll do direct
-                    nonce
-                });
+        hideAlert($widget);
 
-                // Direct profile search
-                $.ajax({
-                    url: ajax,
-                    method: 'POST',
-                    data: {
-                        action: 'avia_flight_calc',
-                        nonce,
-                        profile_search: q,
-                        mode: 'profiles_only'
-                    }
-                });
-            }, 350);
+        const fromIcao  = $widget.find('[name="from_icao"]').val()  || '';
+        const toIcao    = $widget.find('[name="to_icao"]').val()    || '';
+        const fromName  = $widget.find('[name="from_name"]').val()  || fromIcao;
+        const toName    = $widget.find('[name="to_name"]').val()    || toIcao;
+        const date      = $widget.find('[name="date"]').val()       || '';
+        const time      = $widget.find('[name="time"]').val()       || '09:00';
+        const pax       = $widget.find('[name="pax"]').val()        || '4';
+        const acIcao    = $widget.find('#apc-aircraft-icao').val()  || '';
+        const acName    = $widget.find('#apc-aircraft-name').val()  || '';
+
+        // Validation
+        if (!fromIcao) { showAlert($widget, 'Please select a departure airport from the suggestions.'); return; }
+        if (!toIcao)   { showAlert($widget, 'Please select a destination airport from the suggestions.'); return; }
+        if (fromIcao === toIcao) { showAlert($widget, 'Departure and destination airports cannot be the same.'); return; }
+        if (!date)     { showAlert($widget, 'Please select a departure date.'); return; }
+
+        setBusy($btn, true);
+
+        // Build AviaPages calculator URL
+        // Their calculator reads pre-fill params from the URL
+        const params = new URLSearchParams({
+            departure: fromIcao,
+            arrival:   toIcao,
+            date:      date,
+            time:      time,
+            pax:       pax,
         });
+        if (acIcao) params.set('aircraft', acIcao);
+
+        const calcUrl  = CFG.calcBase + '?' + params.toString();
+        const legacyUrl = CFG.legacyBase + '?dep=' + fromIcao + '&arr=' + toIcao + '&pax=' + pax;
+
+        // Update info bar
+        $('#apc-route-label').text(fromIcao + ' → ' + toIcao);
+        $('#apc-date-label').text(date + ' ' + time);
+        $('#apc-pax-label').text(pax + ' pax' + (acName ? ' · ' + acName : ''));
+        $('#apc-open-tab').attr('href', calcUrl);
+
+        // Show iframe section, hide form
+        const $iframeSection = $('#apc-iframe-section');
+        const $iframe        = $('#apc-results-iframe');
+        const $loading       = $('#apc-iframe-loading');
+
+        $iframeSection.show();
+        $loading.show();
+        $iframe.hide();
+
+        // Load calculator in iframe
+        $iframe.off('load').on('load', function () {
+            $loading.hide();
+            $iframe.show();
+            setBusy($btn, false);
+        });
+
+        // If iframe fails to load within 15s, hide spinner anyway
+        const loadTimeout = setTimeout(() => {
+            $loading.hide();
+            $iframe.show();
+            setBusy($btn, false);
+        }, 15000);
+
+        $iframe.on('load', () => clearTimeout(loadTimeout));
+        $iframe.attr('src', calcUrl);
+
+        // Smooth scroll to iframe
+        $('html,body').animate({
+            scrollTop: $iframeSection.offset().top - 80
+        }, 400);
+    });
+
+    /* ─── Back button ────────────────────────────── */
+
+    $(document).on('click', '#apc-back-btn', function () {
+        $('#apc-iframe-section').hide();
+        $('#apc-results-iframe').attr('src', '');
+        $('html,body').animate({ scrollTop: $('.apc-calc').offset().top - 80 }, 300);
+    });
+
+    /* ─── Aircraft search widget ─────────────────── */
+
+    async function initAircraftClasses() {
+        const $sel = $('#jet-class');
+        if (!$sel.length || $sel.find('option').length > 1) return;
+        try {
+            const res = await apiPost('apc_aircraft_classes', {});
+            (res.results || []).forEach(c => $('<option>').val(c.aircraft_class_id).text(c.name).appendTo($sel));
+        } catch(_) {}
     }
 
-    /* ══════════════════════════════════════════════════
-     *  LOAD AIRCRAFT PROFILES (via aircraft list call)
-     * ══════════════════════════════════════════════════ */
-
-    function loadProfiles(selectId, searchInputId) {
-        const $select = $('#' + selectId);
-        if (!$select.length) return;
-
-        // Fetch aircraft list and populate select
-        $.post(ajax, { action: 'avia_search_aircraft', nonce }, function (res) {
-            if (!res.success) return;
-            const jets = res.data.results || [];
+    async function searchJets() {
+        const $grid = $('#apc-jet-grid');
+        if (!$grid.length) return;
+        $grid.html('<div class="apc-loading"><span class="apc-spinner"></span>&ensp;Searching jets…</div>');
+        try {
+            const res  = await apiPost('apc_aircraft_search', {
+                class_id: $('#jet-class').val() || '',
+                pax_min:  $('#jet-pax').val()   || '',
+                search:   $('#jet-name').val()  || '',
+            });
+            const jets = res.results || [];
+            if (!jets.length) { $grid.html('<div class="apc-loading">No aircraft match your filters.</div>'); return; }
+            $grid.empty();
             jets.forEach(j => {
-                if (j.aircraft_profile_id) {
-                    $('<option>').val(j.aircraft_profile_id)
-                        .text(j.aircraft_type_name || j.name)
-                        .appendTo($select);
-                }
+                const name  = j.aircraft_type_name || j.name || 'Aircraft';
+                const cls   = j.aircraft_class_name || '';
+                const pax   = j.pax_maximum || '—';
+                const range = j.range_maximum ? Math.round(j.range_maximum).toLocaleString() + ' nm' : '—';
+                const speed = j.cruise_speed_max ? Math.round(j.cruise_speed_max) + ' kts' : '—';
+                $grid.append(
+                    '<div class="apc-jet-card">' +
+                    '<div class="apc-jet-card__head"><div class="apc-jet-card__name">' + esc(name) + '</div>' +
+                    (cls ? '<span class="apc-jet-card__class">' + esc(cls) + '</span>' : '') +
+                    '</div><div class="apc-jet-card__body"><div class="apc-jet-specs">' +
+                    '<div class="apc-jet-spec"><span class="apc-jet-spec__label">Pax</span><span class="apc-jet-spec__value">' + esc(String(pax)) + '</span></div>' +
+                    '<div class="apc-jet-spec"><span class="apc-jet-spec__label">Range</span><span class="apc-jet-spec__value">' + esc(range) + '</span></div>' +
+                    '<div class="apc-jet-spec"><span class="apc-jet-spec__label">Speed</span><span class="apc-jet-spec__value">' + esc(speed) + '</span></div>' +
+                    '</div></div><div class="apc-jet-card__foot">' +
+                    '<a href="#apc-charter-form" class="apc-btn apc-btn--primary" style="font-size:.72rem;padding:.45rem 1rem">Request →</a>' +
+                    '</div></div>'
+                );
             });
-        });
+        } catch(msg) {
+            $grid.html('<div class="apc-loading" style="color:#991b1b">' + esc(String(msg)) + '</div>');
+        }
+    }
 
-        if (searchInputId) {
-            $('#' + searchInputId).on('input', function () {
-                const q = $(this).val().toLowerCase();
-                $select.find('option').each(function () {
-                    const show = !q || $(this).text().toLowerCase().includes(q) || $(this).val() === '';
-                    $(this).toggle(show);
-                });
+    /* ─── Empty legs ─────────────────────────────── */
+
+    async function searchEmptyLegs() {
+        const $list = $('#apc-el-list');
+        if (!$list.length) return;
+        $list.html('<div class="apc-loading"><span class="apc-spinner"></span>&ensp;Loading live empty leg deals…</div>');
+        try {
+            const res  = await apiPost('apc_empty_legs', {
+                from_icao: $('[name="el_from"]').val() || '',
+                to_icao:   $('[name="el_to"]').val()   || '',
+                date_from: $('#el-date').val()         || '',
             });
-        }
-    }
-
-    /* ══════════════════════════════════════════════════
-     *  FLIGHT CALCULATOR
-     * ══════════════════════════════════════════════════ */
-
-    $(document).on('click', '.avia-calc-btn[data-mode="flight"]', function () {
-        const $btn  = $(this);
-        const $w    = $btn.closest('.avia-widget');
-        const from  = $w.find('[name="from_icao"]').val();
-        const to    = $w.find('[name="to_icao"]').val();
-        const prof  = $w.find('[name="profile_id"]').val();
-        const date  = $w.find('[name="dep_date"]').val();
-
-        $w.find('.avia-error').hide();
-
-        if (!from || !to || !prof) {
-            showError($w.find('.avia-error'), 'Please select departure, destination, and aircraft type.');
-            return;
-        }
-
-        btnLoading($btn, true);
-
-        $.post(ajax, {
-            action: 'avia_flight_calc',
-            nonce,
-            from, to,
-            profile: prof,
-            date
-        }, function (res) {
-            btnLoading($btn, false);
-
-            if (!res.success) {
-                showError($w.find('.avia-error'), res.data || 'Calculation failed. Check your inputs.');
-                return;
-            }
-
-            const d = res.data;
-            $w.find('#res-flight-time').text(fmtMins(d.flight_time));
-            $w.find('#res-distance').text(fmtNum(d.distance_nm, 'nm'));
-            $w.find('#res-fuel').text(fmtNum(d.fuel_used, 'kg'));
-            $w.find('#res-wind').text(d.wind_impact ? (d.wind_impact > 0 ? '+' : '') + fmtMins(d.wind_impact) : '—');
-
-            const routes = d.route_icao ? d.route_icao.join(' → ') : '';
-            $w.find('#res-route').text(routes ? 'Route: ' + routes : '');
-
-            $w.find('#avia-flight-result').slideDown(300);
-        });
-    });
-
-    /* ══════════════════════════════════════════════════
-     *  PRICE CALCULATOR
-     * ══════════════════════════════════════════════════ */
-
-    $(document).on('click', '.avia-calc-btn[data-mode="price"]', function () {
-        const $btn  = $(this);
-        const $w    = $btn.closest('.avia-widget');
-        const from  = $w.find('[name="price_from"]').val();
-        const to    = $w.find('[name="price_to"]').val();
-        const prof  = $w.find('[name="price_profile_id"]').val();
-        const date  = $w.find('[name="price_date"]').val();
-        const pax   = $w.find('[name="price_pax"]').val();
-
-        $w.find('.avia-error').hide();
-
-        if (!from || !to || !prof) {
-            showError($w.find('.avia-error'), 'Please fill in all fields.');
-            return;
-        }
-
-        btnLoading($btn, true);
-
-        $.post(ajax, {
-            action: 'avia_price_calc',
-            nonce,
-            from, to, prof,
-            profile: prof,
-            date, pax
-        }, function (res) {
-            btnLoading($btn, false);
-
-            if (!res.success) {
-                showError($w.find('.avia-error'), res.data || 'Price calculation failed.');
-                return;
-            }
-
-            const d = res.data;
-            const total = d.total_price || d.price || d.total || 0;
-            const base  = d.base_price  || d.cost  || 0;
-            const fees  = d.fees_total  || d.fees  || 0;
-            const comm  = d.commission  || 0;
-            const time  = d.flight_time || d.flight_time_minutes || null;
-
-            $w.find('.avia-price-value').text(fmtMoney(total));
-            $w.find('#res-price-note').text('Incl. ' + (aviaConfig.commission || 15) + '% broker commission');
-            $w.find('#res-base-cost').text(fmtMoney(base));
-            $w.find('#res-fees').text(fmtMoney(fees));
-            $w.find('#res-commission').text(fmtMoney(comm));
-            $w.find('#res-price-time').text(fmtMins(time));
-
-            $w.find('#avia-price-result').slideDown(300);
-        });
-    });
-
-    /* ══════════════════════════════════════════════════
-     *  AIRCRAFT SEARCH
-     * ══════════════════════════════════════════════════ */
-
-    function renderAircraftGrid(results, $grid) {
-        $grid.empty();
-
-        if (!results || !results.length) {
-            $grid.html('<div class="avia-loading">No aircraft found matching your criteria.</div>');
-            return;
-        }
-
-        results.forEach(j => {
-            const name  = j.aircraft_type_name || j.name || 'Aircraft';
-            const cls   = j.aircraft_class_name || '';
-            const pax   = j.pax_maximum || '—';
-            const range = j.range_maximum ? Math.round(j.range_maximum) + ' nm' : '—';
-            const speed = j.cruise_speed_max ? Math.round(j.cruise_speed_max) + ' kts' : '—';
-            const reg   = j.registration || '';
-
-            $grid.append(`
-                <div class="avia-jet-card">
-                    <div class="avia-jet-card__head">
-                        <div class="avia-jet-card__name">${esc(name)}</div>
-                        ${cls ? `<span class="avia-jet-card__class">${esc(cls)}</span>` : ''}
-                    </div>
-                    <div class="avia-jet-card__body">
-                        <div class="avia-jet-card__stats">
-                            <div class="avia-jet-stat"><span class="avia-jet-stat__label">Pax</span><span class="avia-jet-stat__value">${esc(String(pax))}</span></div>
-                            <div class="avia-jet-stat"><span class="avia-jet-stat__label">Range</span><span class="avia-jet-stat__value">${esc(range)}</span></div>
-                            <div class="avia-jet-stat"><span class="avia-jet-stat__label">Speed</span><span class="avia-jet-stat__value">${esc(speed)}</span></div>
-                            ${reg ? `<div class="avia-jet-stat"><span class="avia-jet-stat__label">Reg</span><span class="avia-jet-stat__value">${esc(reg)}</span></div>` : ''}
-                        </div>
-                    </div>
-                    <div class="avia-jet-card__footer">
-                        <a href="#avia-charter-form" class="avia-btn avia-btn--primary" style="font-size:0.75rem;padding:0.5rem 1rem">Request Quote →</a>
-                    </div>
-                </div>
-            `);
-        });
-    }
-
-    function esc(s) {
-        return $('<div>').text(s).html();
-    }
-
-    // Load aircraft classes into filter
-    $(document).ready(function () {
-        const $classFilter = $('#filter-class');
-        if ($classFilter.length) {
-            $.post(ajax, { action: 'avia_aircraft_classes', nonce }, function (res) {
-                if (res.success && res.data.results) {
-                    res.data.results.forEach(c => {
-                        $('<option>').val(c.aircraft_class_id).text(c.name).appendTo($classFilter);
-                    });
-                }
+            const legs = res.results || [];
+            if (!legs.length) { $list.html('<div class="apc-loading">No empty legs found. New deals posted daily.</div>'); return; }
+            $list.empty();
+            legs.forEach(el => {
+                const dep  = (el.departure_airport && el.departure_airport.icao)   || el.departure_airport_icao   || '—';
+                const arr  = (el.destination_airport && el.destination_airport.icao) || el.destination_airport_icao || '—';
+                const dCty = (el.departure_airport && el.departure_airport.city_name)    || '';
+                const aCty = (el.destination_airport && el.destination_airport.city_name) || '';
+                const date = el.date || el.departure_date || '—';
+                const ac   = el.aircraft_type_name || (el.aircraft && el.aircraft.aircraft_type_name) || 'Charter Jet';
+                $list.append(
+                    '<div class="apc-el-item">' +
+                    '<div><div class="apc-el-airport">' + esc(dep) + '</div><div class="apc-el-city">' + esc(dCty) + '</div></div>' +
+                    '<div class="apc-el-arrow">→</div>' +
+                    '<div><div class="apc-el-airport">' + esc(arr) + '</div><div class="apc-el-city">' + esc(aCty) + '</div></div>' +
+                    '<div class="apc-el-meta"><strong>' + esc(ac) + '</strong></div>' +
+                    '<div class="apc-el-date">' + esc(date) + '</div>' +
+                    '<div><a href="#apc-charter-form" class="apc-btn apc-btn--gold" style="font-size:.7rem;padding:.4rem .875rem">Enquire</a></div>' +
+                    '</div>'
+                );
             });
-
-            // Initial load
-            searchAircraft();
+        } catch(msg) {
+            $list.html('<div class="apc-loading" style="color:#991b1b">Could not load: ' + esc(String(msg)) + '</div>');
         }
-    });
-
-    function searchAircraft() {
-        const $grid = $('#avia-aircraft-grid');
-        if (!$grid.length) return;
-
-        $grid.html('<div class="avia-loading">Loading aircraft…</div>');
-
-        $.post(ajax, {
-            action: 'avia_search_aircraft',
-            nonce,
-            class: $('#filter-class').val(),
-            pax:   $('#filter-pax').val()
-        }, function (res) {
-            if (!res.success) {
-                $grid.html('<div class="avia-loading">Failed to load aircraft.</div>');
-                return;
-            }
-            renderAircraftGrid(res.data.results || [], $grid);
-        });
     }
 
-    $(document).on('click', '#avia-search-jets-btn', searchAircraft);
+    /* ─── Charter request form ───────────────────── */
 
-    /* ══════════════════════════════════════════════════
-     *  EMPTY LEGS
-     * ══════════════════════════════════════════════════ */
+    $(document).on('click', '#apc-charter-submit', async function () {
+        const $btn    = $(this);
+        const $widget = $btn.closest('.apc-widget');
+        hideAlert($widget);
 
-    function renderEmptyLegs(results, $grid) {
-        $grid.empty();
+        const from  = $widget.find('[name="req_from"]').val() || '';
+        const to    = $widget.find('[name="req_to"]').val()   || '';
+        const date  = $widget.find('#req-date').val()         || '';
+        const pax   = parseInt($widget.find('#req-pax').val() || 4, 10);
+        const name  = $widget.find('#req-name').val().trim();
+        const email = $widget.find('#req-email').val().trim();
+        const phone = $widget.find('#req-phone').val().trim();
+        const notes = $widget.find('#req-notes').val().trim();
 
-        if (!results || !results.length) {
-            $grid.html('<div class="avia-loading" style="padding:1.5rem 0">No empty legs found. Try different filters.</div>');
-            return;
+        if (!from)  { showAlert($widget, 'Please select a departure airport.'); return; }
+        if (!to)    { showAlert($widget, 'Please select a destination airport.'); return; }
+        if (!date)  { showAlert($widget, 'Please select a departure date.'); return; }
+        if (!name)  { showAlert($widget, 'Please enter your full name.'); return; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showAlert($widget, 'Please enter a valid email address.'); return;
         }
 
-        results.forEach(el => {
-            const dep   = el.departure_airport_icao  || el.departure_airport?.icao  || '—';
-            const arr   = el.destination_airport_icao || el.destination_airport?.icao || '—';
-            const depCity = el.departure_airport?.city_name  || '';
-            const arrCity = el.destination_airport?.city_name || '';
-            const date  = el.date || el.departure_date || '';
-            const ac    = el.aircraft_type_name || el.aircraft?.aircraft_type_name || 'Charter Jet';
-            const id    = el.id || '';
-
-            $grid.append(`
-                <div class="avia-el-card" data-id="${esc(String(id))}">
-                    <div class="avia-el-route">
-                        <div class="avia-el-airport">${esc(dep)}</div>
-                        <div class="avia-el-city">${esc(depCity)}</div>
-                    </div>
-                    <div class="avia-el-arrow">→</div>
-                    <div class="avia-el-route">
-                        <div class="avia-el-airport">${esc(arr)}</div>
-                        <div class="avia-el-city">${esc(arrCity)}</div>
-                    </div>
-                    <div class="avia-el-info">
-                        <div class="avia-el-date">${esc(date)}</div>
-                        <div class="avia-el-aircraft">${esc(ac)}</div>
-                    </div>
-                    <div class="avia-el-actions">
-                        <a href="#avia-charter-form" class="avia-btn avia-btn--gold" style="font-size:0.7rem;padding:0.45rem 0.9rem">
-                            Enquire
-                        </a>
-                    </div>
-                </div>
-            `);
-        });
-    }
-
-    // Load initial empty legs
-    $(document).ready(function () {
-        const $grid = $('#avia-el-grid');
-        if (!$grid.length) return;
-        loadEmptyLegs($grid);
-    });
-
-    function loadEmptyLegs($grid) {
-        if (!$grid) $grid = $('#avia-el-grid');
-        $grid.html('<div class="avia-loading">Loading live empty legs…</div>');
-
-        $.post(ajax, {
-            action: 'avia_empty_legs',
-            nonce,
-            from_icao: $('[name="el_from"]').val(),
-            to_icao:   $('[name="el_to"]').val(),
-            date:      $('#el-date').val()
-        }, function (res) {
-            if (!res.success) {
-                $grid.html('<div class="avia-loading">Could not load empty legs.</div>');
-                return;
-            }
-            renderEmptyLegs(res.data.results || [], $grid);
-        });
-    }
-
-    $(document).on('click', '#avia-el-search-btn', function () {
-        loadEmptyLegs($('#avia-el-grid'));
-    });
-
-    /* ══════════════════════════════════════════════════
-     *  CHARTER REQUEST FORM
-     * ══════════════════════════════════════════════════ */
-
-    $(document).on('click', '#avia-submit-request', function () {
-        const $btn = $(this);
-
-        const from  = $('#req_from').val();
-        const to    = $('#req_to').val();
-        const date  = $('#req_date').val();
-        const pax   = $('#req_pax').val();
-        const name  = $('#req_name').val().trim();
-        const email = $('#req_email').val().trim();
-        const phone = $('#req_phone').val().trim();
-        const notes = $('#req_notes').val().trim();
-
-        $('#avia-request-error').hide();
-
-        if (!from || !to) {
-            showError('#avia-request-error', 'Please select both departure and destination airports.');
-            return;
-        }
-        if (!date) {
-            showError('#avia-request-error', 'Please select a departure date.');
-            return;
-        }
-        if (!name || !email) {
-            showError('#avia-request-error', 'Please enter your name and email address.');
-            return;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            showError('#avia-request-error', 'Please enter a valid email address.');
-            return;
-        }
-
-        btnLoading($btn, true);
-
-        $.post(ajax, {
-            action: 'avia_charter_request',
-            nonce,
-            from, to, date, pax, name, email, phone, notes
-        }, function (res) {
-            btnLoading($btn, false);
-
-            if (!res.success) {
-                showError('#avia-request-error', res.data || 'Submission failed. Please try again.');
-                return;
-            }
-
-            $('#charter-request-form').fadeOut(300, function () {
-                $('#avia-request-success').fadeIn(300);
+        setBusy($btn, true);
+        try {
+            await apiPost('apc_charter_request', { from, to, date, pax, name, email, phone, notes });
+            $widget.find('#apc-charter-body').fadeOut(300, function() {
+                $widget.find('#apc-charter-success').removeAttr('hidden').fadeIn(350);
             });
-        });
+        } catch(msg) {
+            showAlert($widget, typeof msg === 'string' ? msg : 'Submission failed. Please try again.');
+        } finally {
+            setBusy($btn, false);
+        }
     });
 
-    /* ══════════════════════════════════════════════════
-     *  PROFILE SELECTS (load all available jets)
-     * ══════════════════════════════════════════════════ */
+    /* ─── Init ───────────────────────────────────── */
 
-    $(document).ready(function () {
-        // Load jets into both calculator selects
-        const selects = [
-            { sel: '#avia-profile-select',       search: '#avia-profile-search' },
-            { sel: '#avia-price-profile-select',  search: '#avia-price-profile-search' },
-        ];
-
-        selects.forEach(cfg => {
-            if (!$(cfg.sel).length) return;
-
-            $.post(ajax, { action: 'avia_search_aircraft', nonce }, function (res) {
-                if (!res.success) return;
-                const jets = res.data.results || [];
-                jets.forEach(j => {
-                    const val  = j.aircraft_profile_id || '';
-                    const text = (j.aircraft_type_name || j.name || 'Aircraft') +
-                                 (j.aircraft_class_name ? ' (' + j.aircraft_class_name + ')' : '');
-                    if (val) {
-                        $('<option>').val(val).text(text).appendTo($(cfg.sel));
-                    }
-                });
-
-                // Filter select by search input
-                $(cfg.search).on('input', function () {
-                    const q = $(this).val().toLowerCase();
-                    $(cfg.sel + ' option').each(function () {
-                        const show = !q || $(this).text().toLowerCase().includes(q) || $(this).val() === '';
-                        $(this).toggle(show);
-                    });
-                    if (!$(cfg.sel + ' option:selected').is(':visible')) {
-                        $(cfg.sel).val('');
-                    }
-                });
-            });
+    $(async function () {
+        if ($('#apc-jet-grid').length) { await initAircraftClasses(); await searchJets(); }
+        if ($('#apc-el-list').length)  { await searchEmptyLegs(); }
+        $(document).on('click', '#jet-search-btn', () => searchJets());
+        $(document).on('click', '#el-search-btn',  () => searchEmptyLegs());
+        $(document).on('keydown', '#jet-class,#jet-pax,#jet-name', e => {
+            if (e.key === 'Enter') { e.preventDefault(); searchJets(); }
         });
     });
 
