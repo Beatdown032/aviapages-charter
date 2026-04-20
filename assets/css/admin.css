@@ -1,0 +1,179 @@
+/* AviaPages Charter Suite — Admin CSS */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+
+.apc-admin { font-family: 'DM Sans', system-ui, sans-serif; max-width: 1080px; }
+
+.apc-admin__hero {
+    background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.apc-admin__hero-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.75rem 2rem;
+}
+
+.apc-admin__brand { display: flex; align-items: center; gap: 1rem; }
+.apc-admin__plane { font-size: 2rem; }
+.apc-admin__title { font-size: 1.4rem; font-weight: 600; color: #fcd34d; margin: 0; }
+.apc-admin__sub   { font-size: .8rem; color: rgba(255,255,255,.45); margin: .2rem 0 0; }
+
+.apc-badge {
+    font-size: .72rem; font-weight: 600; padding: .35rem .875rem;
+    border-radius: 20px; letter-spacing: .05em;
+}
+.apc-badge--ok  { background: rgba(134,239,172,.12); color: #86efac; border: 1px solid rgba(134,239,172,.25); }
+.apc-badge--err { background: rgba(252,165,165,.12); color: #fca5a5; border: 1px solid rgba(252,165,165,.25); }
+
+.apc-admin__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.apc-card {
+    background: #fff; border: 1px solid #e7e5e4;
+    border-radius: 10px; padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(28,25,23,.06), 0 4px 12px rgba(28,25,23,.04);
+}
+
+.apc-card--full { grid-column: 1 / -1; }
+
+.apc-card--info {
+    background: #fafaf9;
+    border-left: 3px solid #b45309;
+}
+
+.apc-card--info p { color: #44403c; font-size: .875rem; line-height: 1.65; margin: .5rem 0; }
+.apc-card--info code { background: #e7e5e4; padding: .1rem .35rem; border-radius: 3px; font-size: .8rem; }
+
+.apc-card__title {
+    font-size: .875rem; font-weight: 600; color: #1c1917;
+    margin: 0 0 1.1rem; padding-bottom: .75rem;
+    border-bottom: 2px solid #b45309;
+}
+
+.apc-sc-table th, .apc-sc-table td { padding: .6rem .875rem; font-size: .875rem; }
+.apc-sc-table code { background: #f5f5f4; padding: .15rem .4rem; border-radius: 4px; font-size: .8rem; }
+
+/* Flush cache footer in card */
+.apc-card__footer {
+    margin-top: 1rem;
+    padding-top: .875rem;
+    border-top: 1px solid #e7e5e4;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* Connection status */
+.apc-admin__status { display: flex; align-items: center; }
+.apc-badge--warn { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+
+/* Architecture flow */
+.apc-arch-grid {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-top: .5rem;
+}
+
+.apc-arch-step {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    flex: 1;
+    min-width: 180px;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    padding: .875rem;
+}
+
+.apc-arch-step__num {
+    width: 24px; height: 24px;
+    background: #b45309;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; font-weight: 700;
+    flex-shrink: 0;
+}
+
+.apc-arch-step__text { font-size: .8rem; color: #44403c; line-height: 1.5; }
+.apc-arch-step__text code { background: #f5f5f4; padding: .1rem .3rem; border-radius: 3px; font-size: .75rem; }
+
+.apc-arch-arrow { color: #b45309; font-size: 1.25rem; font-weight: 300; flex-shrink: 0; }
+
+@media (max-width: 900px) {
+    .apc-admin__grid { grid-template-columns: 1fr; }
+    .apc-arch-grid { flex-direction: column; }
+    .apc-arch-arrow { transform: rotate(90deg); }
+}
+
+/* Flush cache row — standalone form below main settings */
+.apc-flush-row {
+    margin-top: 1rem;
+    padding: 1rem 0;
+    display: flex;
+    align-items: center;
+}
+
+/* API key as text input (not password) so browsers don't block it */
+.apc-key-input {
+    font-family: monospace;
+    font-size: .85rem;
+    letter-spacing: .02em;
+    color: #1c1917;
+    background: #fafaf9;
+}
+
+/* Admin tabs */
+.apc-admin-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e7e5e4;
+    margin-bottom: 1.5rem;
+}
+
+.apc-admin-tab {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: .85rem;
+    font-weight: 500;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    padding: .65rem 1.25rem;
+    cursor: pointer;
+    color: #78716c;
+    transition: all .2s;
+}
+
+.apc-admin-tab:hover { color: #1c1917; }
+
+.apc-admin-tab--active {
+    color: #b45309;
+    border-bottom-color: #b45309;
+    font-weight: 600;
+}
+
+.apc-card--info {
+    background: #fafaf9;
+    border-left: 3px solid #b45309;
+}
+
+.apc-key-input {
+    font-family: monospace;
+    font-size: .85rem;
+}

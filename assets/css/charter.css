@@ -1,591 +1,920 @@
-/* ============================================================
-   AviaPages Charter Suite — Frontend Styles
-   Aesthetic: Luxury Aviation — deep navy, gold accents, refined
-   ============================================================ */
+/* ================================================================
+   AviaPages Charter Suite v2 — Frontend CSS
+   Aesthetic: Editorial Aviation — Warm slate + amber gold, 
+   sharp geometry, refined typography, deliberate whitespace
+   Fonts: DM Serif Display (headings) + DM Sans (body)
+   ================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+/* ── Design tokens ───────────────────────────────────────── */
 :root {
-    --avia-navy:       #0a1628;
-    --avia-navy-mid:   #112040;
-    --avia-navy-light: #1a3060;
-    --avia-gold:       #c9a84c;
-    --avia-gold-light: #e2c46e;
-    --avia-gold-pale:  #f7eedc;
-    --avia-white:      #ffffff;
-    --avia-off-white:  #f5f6f8;
-    --avia-text:       #1e2d4a;
-    --avia-muted:      #6b7a99;
-    --avia-border:     #dde3f0;
-    --avia-success:    #1a8a5a;
-    --avia-error:      #c0392b;
-    --avia-radius:     12px;
-    --avia-shadow:     0 8px 32px rgba(10,22,40,0.12);
-    --avia-shadow-lg:  0 20px 60px rgba(10,22,40,0.18);
-    --avia-font-serif: 'Cormorant Garamond', Georgia, serif;
-    --avia-font-sans:  'Outfit', system-ui, sans-serif;
-    --avia-transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --apc-ink:        #1c1917;      /* warm near-black */
+    --apc-slate:      #292524;
+    --apc-slate-mid:  #44403c;
+    --apc-slate-soft: #78716c;
+    --apc-stone:      #a8a29e;
+    --apc-rule:       #e7e5e4;
+    --apc-bg:         #fafaf9;
+    --apc-white:      #ffffff;
+
+    --apc-gold:       #b45309;      /* amber-700 — rich, not gaudy */
+    --apc-gold-lt:    #d97706;
+    --apc-gold-pale:  #fef3c7;
+    --apc-gold-rule:  #fcd34d;
+
+    --apc-sky:        #0c4a6e;      /* deep sky blue accent */
+    --apc-sky-lt:     #0369a1;
+    --apc-sky-pale:   #e0f2fe;
+
+    --apc-success:    #166534;
+    --apc-error:      #991b1b;
+    --apc-error-bg:   #fef2f2;
+
+    --apc-r:          10px;         /* border-radius */
+    --apc-r-sm:       6px;
+    --apc-shadow:     0 1px 3px rgba(28,25,23,.08), 0 8px 24px rgba(28,25,23,.06);
+    --apc-shadow-md:  0 4px 6px rgba(28,25,23,.06), 0 12px 40px rgba(28,25,23,.10);
+    --apc-trans:      220ms cubic-bezier(.4,0,.2,1);
+
+    --apc-f-serif:    'DM Serif Display', Georgia, serif;
+    --apc-f-sans:     'DM Sans', system-ui, sans-serif;
 }
 
-/* ─── Base Widget ─── */
-.avia-widget {
-    font-family: var(--avia-font-sans);
-    background: var(--avia-white);
-    border-radius: var(--avia-radius);
-    box-shadow: var(--avia-shadow);
+/* ── Widget shell ────────────────────────────────────────── */
+.apc-widget {
+    font-family: var(--apc-f-sans);
+    font-size: 15px;
+    color: var(--apc-ink);
+    background: var(--apc-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r);
+    box-shadow: var(--apc-shadow);
     overflow: hidden;
-    margin: 2rem 0;
-    border: 1px solid var(--avia-border);
+    margin: 2.5rem 0;
+    position: relative;
 }
 
-.avia-widget__header {
-    background: linear-gradient(135deg, var(--avia-navy) 0%, var(--avia-navy-light) 100%);
-    padding: 1.5rem 2rem;
+/* ── Header ──────────────────────────────────────────────── */
+.apc-widget__header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 1rem;
+    padding: 1.25rem 1.75rem;
+    background: var(--apc-slate);
+    border-bottom: 2px solid transparent;
+    background-clip: padding-box;
     position: relative;
 }
 
-.avia-widget__header::after {
+.apc-widget__header::after {
     content: '';
     position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--avia-gold), var(--avia-gold-light), var(--avia-gold));
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--apc-gold-rule) 0%, var(--apc-gold) 50%, transparent 100%);
 }
 
-.avia-widget__icon {
-    font-size: 1.5rem;
-    line-height: 1;
-}
-
-.avia-widget__title {
-    font-family: var(--avia-font-serif);
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--avia-white);
-    margin: 0;
-    letter-spacing: 0.02em;
-}
-
-/* ─── Form Sections ─── */
-.avia-form,
-.avia-filters {
-    padding: 1.75rem 2rem;
-}
-
-.avia-form-section {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--avia-border);
-}
-
-.avia-form-section:last-child {
-    border-bottom: none;
-}
-
-.avia-section-label {
-    font-family: var(--avia-font-sans);
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--avia-gold);
-    margin: 0 0 1rem 0;
-}
-
-.avia-row {
+.apc-widget__header-left {
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    gap: .75rem;
+}
+
+.apc-widget__svg-icon {
+    width: 22px; height: 22px;
+    color: var(--apc-gold-lt);
+    flex-shrink: 0;
+}
+
+.apc-widget__title {
+    font-family: var(--apc-f-serif);
+    font-size: 1.375rem;
+    font-weight: 400;
+    color: var(--apc-white);
+    margin: 0;
+    letter-spacing: .01em;
+    line-height: 1.2;
+}
+
+/* ── Mode tabs ───────────────────────────────────────────── */
+.apc-mode-tabs {
+    display: flex;
+    gap: 2px;
+    background: rgba(255,255,255,.08);
+    border-radius: var(--apc-r-sm);
+    padding: 2px;
+}
+
+.apc-tab {
+    font-family: var(--apc-f-sans);
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.55);
+    background: none;
+    border: none;
+    border-radius: 4px;
+    padding: .35rem .75rem;
+    cursor: pointer;
+    transition: background var(--apc-trans), color var(--apc-trans);
+}
+
+.apc-tab--active {
+    background: rgba(255,255,255,.15);
+    color: var(--apc-white);
+}
+
+/* ── Body / form area ────────────────────────────────────── */
+.apc-widget__body {
+    padding: 1.5rem 1.75rem;
+    background: var(--apc-bg);
+}
+
+.apc-filters {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--apc-rule);
+    background: var(--apc-white);
+}
+
+/* ── Form layout ─────────────────────────────────────────── */
+.apc-form__row {
+    display: flex;
+    gap: .875rem;
     align-items: flex-start;
     flex-wrap: wrap;
-    margin-bottom: 1rem;
+    margin-bottom: .875rem;
 }
 
-.avia-filter-row {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    flex-wrap: wrap;
+.apc-form__row:last-child { margin-bottom: 0; }
+
+.apc-form__row--submit {
+    padding-top: .5rem;
+    justify-content: flex-start;
 }
 
-.avia-field {
-    flex: 1;
-    min-width: 180px;
+.apc-form__field {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: .35rem;
+    min-width: 160px;
+    flex: 1;
 }
 
-.avia-field--sm  { flex: 0 0 120px; min-width: 100px; }
-.avia-field--airport { flex: 2; min-width: 220px; }
+.apc-form__field--grow  { flex: 2; }
+.apc-form__field--sm    { flex: 0 0 110px; min-width: 90px; }
+.apc-form__field--btn   { justify-content: flex-end; flex: 0 0 auto; }
 
-.avia-field label {
-    font-size: 0.75rem;
-    font-weight: 500;
+/* ── Labels ──────────────────────────────────────────────── */
+.apc-label {
+    font-size: .7rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--avia-muted);
+    letter-spacing: .09em;
+    color: var(--apc-slate-soft);
+    user-select: none;
 }
 
-.avia-field label .req {
-    color: var(--avia-gold);
-}
+.apc-req      { color: var(--apc-gold); }
+.apc-optional { color: var(--apc-stone); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
-/* ─── Inputs ─── */
-.avia-input {
-    font-family: var(--avia-font-sans);
-    font-size: 0.9rem;
-    color: var(--avia-text);
-    background: var(--avia-off-white);
-    border: 1.5px solid var(--avia-border);
-    border-radius: 8px;
-    padding: 0.65rem 0.9rem;
+/* ── Inputs ──────────────────────────────────────────────── */
+.apc-input {
+    font-family: var(--apc-f-sans);
+    font-size: .9rem;
+    color: var(--apc-ink);
+    background: var(--apc-white);
+    border: 1.5px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    padding: .6rem .875rem;
     width: 100%;
     box-sizing: border-box;
-    transition: border-color var(--avia-transition), box-shadow var(--avia-transition);
+    transition: border-color var(--apc-trans), box-shadow var(--apc-trans);
     outline: none;
     appearance: none;
+    line-height: 1.4;
 }
 
-.avia-input:focus {
-    border-color: var(--avia-gold);
-    box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
-    background: var(--avia-white);
+.apc-input:focus {
+    border-color: var(--apc-gold);
+    box-shadow: 0 0 0 3px rgba(180,83,9,.12);
 }
 
-.avia-textarea {
-    min-height: 90px;
+.apc-input::placeholder { color: var(--apc-stone); }
+
+.apc-textarea {
     resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
 }
 
-/* ─── Autocomplete ─── */
-.avia-autocomplete-wrap {
-    position: relative;
-}
+/* ── Autocomplete ────────────────────────────────────────── */
+.apc-ac-wrap { position: relative; }
 
-.avia-autocomplete-list {
+.apc-ac-list {
     position: absolute;
     top: calc(100% + 4px);
     left: 0; right: 0;
-    background: var(--avia-white);
-    border: 1.5px solid var(--avia-gold);
-    border-radius: 8px;
-    box-shadow: var(--avia-shadow-lg);
+    background: var(--apc-white);
+    border: 1.5px solid var(--apc-gold);
+    border-radius: var(--apc-r-sm);
+    box-shadow: var(--apc-shadow-md);
     list-style: none;
-    margin: 0; padding: 0.4rem 0;
-    z-index: 999;
-    max-height: 220px;
+    margin: 0; padding: .3rem 0;
+    z-index: 1000;
+    max-height: 240px;
     overflow-y: auto;
     display: none;
 }
 
-.avia-autocomplete-list li {
-    padding: 0.55rem 1rem;
+.apc-ac-list li {
+    padding: .5rem .875rem;
+    font-size: .85rem;
     cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--avia-text);
-    transition: background var(--avia-transition);
-    border-bottom: 1px solid var(--avia-border);
+    color: var(--apc-ink);
+    border-bottom: 1px solid var(--apc-rule);
+    line-height: 1.35;
+    transition: background var(--apc-trans);
 }
 
-.avia-autocomplete-list li:last-child { border-bottom: none; }
-
-.avia-autocomplete-list li:hover,
-.avia-autocomplete-list li.is-active {
-    background: var(--avia-gold-pale);
-    color: var(--avia-navy);
+.apc-ac-list li:last-child  { border-bottom: none; }
+.apc-ac-list li:hover,
+.apc-ac-list li[aria-selected="true"] {
+    background: var(--apc-gold-pale);
+    color: var(--apc-slate);
 }
 
-/* ─── Swap Button ─── */
-.avia-swap-btn {
+.apc-ac-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .35rem;
+    font-size: .75rem;
+    font-weight: 500;
+    color: var(--apc-sky-lt);
+    background: var(--apc-sky-pale);
+    border-radius: 4px;
+    padding: .2rem .55rem;
+}
+
+/* ── Swap button ─────────────────────────────────────────── */
+.apc-swap {
     margin-top: 1.6rem;
-    background: var(--avia-navy);
-    color: var(--avia-gold);
-    border: none;
-    border-radius: 50%;
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    font-size: 1rem;
     flex-shrink: 0;
-    transition: background var(--avia-transition), transform var(--avia-transition);
-    user-select: none;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--apc-white);
+    border: 1.5px solid var(--apc-rule);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--apc-slate-mid);
+    transition: all var(--apc-trans);
 }
 
-.avia-swap-btn:hover {
-    background: var(--avia-gold);
-    color: var(--avia-navy);
+.apc-swap:hover {
+    border-color: var(--apc-gold);
+    color: var(--apc-gold);
+    background: var(--apc-gold-pale);
     transform: rotate(180deg);
 }
 
-/* ─── Buttons ─── */
-.avia-btn {
-    font-family: var(--avia-font-sans);
-    font-size: 0.85rem;
+/* ── Buttons ─────────────────────────────────────────────── */
+.apc-btn {
+    font-family: var(--apc-f-sans);
+    font-size: .8rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: .1em;
     border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.75rem;
+    border-radius: var(--apc-r-sm);
+    padding: .65rem 1.4rem;
     cursor: pointer;
-    transition: all var(--avia-transition);
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: .5rem;
     text-decoration: none;
-}
-
-.avia-btn--primary {
-    background: linear-gradient(135deg, var(--avia-navy) 0%, var(--avia-navy-light) 100%);
-    color: var(--avia-white);
-    box-shadow: 0 4px 16px rgba(10,22,40,0.25);
-}
-
-.avia-btn--primary:hover {
-    background: linear-gradient(135deg, var(--avia-navy-light) 0%, var(--avia-navy) 100%);
-    box-shadow: 0 8px 24px rgba(10,22,40,0.35);
-    transform: translateY(-1px);
-    color: var(--avia-white);
-}
-
-.avia-btn--gold {
-    background: linear-gradient(135deg, var(--avia-gold) 0%, var(--avia-gold-light) 100%);
-    color: var(--avia-navy);
-    box-shadow: 0 4px 16px rgba(201,168,76,0.35);
-}
-
-.avia-btn--gold:hover {
-    box-shadow: 0 8px 24px rgba(201,168,76,0.5);
-    transform: translateY(-1px);
-}
-
-.avia-btn--xl {
-    font-size: 1rem;
-    padding: 1rem 2.5rem;
-}
-
-.avia-calc-btn,
-#avia-el-search-btn,
-#avia-search-jets-btn,
-#avia-submit-request {
-    margin-top: 0.5rem;
+    transition: all var(--apc-trans);
     white-space: nowrap;
+    position: relative;
 }
 
-.avia-submit-row {
-    display: flex;
-    justify-content: center;
-    padding: 1rem 0;
+.apc-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.apc-btn--primary {
+    background: var(--apc-slate);
+    color: var(--apc-white);
+    box-shadow: 0 2px 8px rgba(28,25,23,.2);
 }
 
-.avia-cta-row {
-    display: flex;
-    justify-content: center;
-    margin-top: 1.25rem;
+.apc-btn--primary:hover:not(:disabled) {
+    background: var(--apc-ink);
+    box-shadow: 0 4px 16px rgba(28,25,23,.3);
+    transform: translateY(-1px);
 }
 
-/* ─── Result Cards ─── */
-.avia-result {
-    background: linear-gradient(135deg, var(--avia-navy) 0%, var(--avia-navy-mid) 100%);
-    padding: 1.75rem 2rem;
-    border-top: 3px solid var(--avia-gold);
+.apc-btn--gold {
+    background: var(--apc-gold);
+    color: var(--apc-white);
+    box-shadow: 0 2px 8px rgba(180,83,9,.25);
 }
 
-.avia-result__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 1rem;
+.apc-btn--gold:hover:not(:disabled) {
+    background: var(--apc-gold-lt);
+    box-shadow: 0 4px 16px rgba(180,83,9,.35);
+    transform: translateY(-1px);
+    color: var(--apc-white);
 }
 
-.avia-result__card {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(201,168,76,0.2);
-    border-radius: 10px;
-    padding: 1rem;
-    text-align: center;
+.apc-btn--xl { font-size: .9rem; padding: .875rem 2rem; }
+
+.apc-btn__loading { display: none; align-items: center; gap: .5rem; }
+.apc-btn--busy .apc-btn__text { display: none; }
+.apc-btn--busy .apc-btn__loading { display: flex; }
+
+/* ── Spinner ─────────────────────────────────────────────── */
+.apc-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: apc-spin .7s linear infinite;
+    display: inline-block;
 }
 
-.avia-result__icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+@keyframes apc-spin { to { transform: rotate(360deg); } }
 
-.avia-result__label {
-    font-size: 0.68rem;
+/* ── Fieldset ────────────────────────────────────────────── */
+.apc-fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+}
+
+.apc-fieldset__legend {
+    font-size: .68rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 0.35rem;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+    margin-bottom: 1rem;
+    display: block;
+    padding: 0;
+    width: 100%;
+    border-bottom: 1px solid var(--apc-rule);
+    padding-bottom: .5rem;
 }
 
-.avia-result__value {
-    font-family: var(--avia-font-serif);
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--avia-gold-light);
+/* ── Alerts ──────────────────────────────────────────────── */
+.apc-alert {
+    border-radius: var(--apc-r-sm);
+    padding: .75rem 1rem;
+    font-size: .85rem;
+    margin: .75rem 0;
+    line-height: 1.5;
 }
 
-.avia-result__route {
-    margin-top: 1rem;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.55);
-    text-align: center;
+.apc-alert--error {
+    background: var(--apc-error-bg);
+    border: 1px solid rgba(153,27,27,.2);
+    color: var(--apc-error);
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+.apc-loading {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    justify-content: center;
+    padding: 2.5rem;
+    color: var(--apc-stone);
+    font-size: .875rem;
+}
+
+/* ── Results panel ───────────────────────────────────────── */
+.apc-results {
+    border-top: 1px solid var(--apc-rule);
+    margin-top: 1.25rem;
+    animation: apc-slide-in .35s ease both;
+}
+
+@keyframes apc-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.apc-results__section {
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+.apc-results__section:last-child { border-bottom: none; }
+
+.apc-results__label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .875rem;
+}
+
+.apc-results__section-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+}
+
+.apc-route-badge {
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--apc-slate-mid);
     font-style: italic;
 }
 
-/* ─── Price Hero ─── */
-.avia-result--price {
-    text-align: center;
-}
-
-.avia-price-hero {
-    margin-bottom: 1.5rem;
-}
-
-.avia-price-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.55);
-    margin-bottom: 0.5rem;
-}
-
-.avia-price-value {
-    font-family: var(--avia-font-serif);
-    font-size: 3rem;
-    font-weight: 700;
-    color: var(--avia-gold);
-    line-height: 1;
-}
-
-.avia-price-note {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.45);
-    margin-top: 0.35rem;
-}
-
-/* ─── Aircraft Grid ─── */
-.avia-aircraft-grid {
+/* ── Stats grid ──────────────────────────────────────────── */
+.apc-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.25rem;
-    padding: 1.75rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: .75rem;
 }
 
-.avia-jet-card {
-    background: var(--avia-white);
-    border: 1.5px solid var(--avia-border);
-    border-radius: 10px;
-    overflow: hidden;
-    transition: box-shadow var(--avia-transition), transform var(--avia-transition);
+.apc-stat {
+    background: var(--apc-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    padding: .875rem;
+    text-align: center;
+    transition: box-shadow var(--apc-trans);
 }
 
-.avia-jet-card:hover {
-    box-shadow: var(--avia-shadow-lg);
-    transform: translateY(-3px);
+.apc-stat:hover { box-shadow: var(--apc-shadow); }
+
+.apc-stat__icon  { font-size: 1.25rem; margin-bottom: .25rem; }
+
+.apc-stat__label {
+    font-size: .63rem;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--apc-stone);
+    margin-bottom: .25rem;
 }
 
-.avia-jet-card__head {
-    background: linear-gradient(135deg, var(--avia-navy) 0%, var(--avia-navy-light) 100%);
-    padding: 1rem 1.25rem;
+.apc-stat__value {
+    font-family: var(--apc-f-serif);
+    font-size: 1.15rem;
+    color: var(--apc-ink);
+    font-weight: 400;
+}
+
+/* Tech stops */
+.apc-tech-stops {
+    margin-top: .875rem;
+    font-size: .8rem;
+    color: var(--apc-slate-soft);
+}
+
+.apc-label-small {
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--apc-stone);
+    margin-right: .35rem;
+}
+
+/* ── Price hero ──────────────────────────────────────────── */
+.apc-results__section--price {
+    background: var(--apc-slate);
+    border-radius: var(--apc-r-sm);
+    padding: 1.5rem;
+    margin-top: .875rem;
+    border-bottom: none;
+}
+
+.apc-price-hero {
+    text-align: center;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    margin-bottom: 1.25rem;
+}
+
+.apc-price-hero__label {
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(255,255,255,.45);
+    margin-bottom: .5rem;
+}
+
+.apc-price-hero__value {
+    font-family: var(--apc-f-serif);
+    font-size: 2.75rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+    line-height: 1;
+    letter-spacing: -.01em;
+}
+
+.apc-price-hero__note {
+    font-size: .75rem;
+    color: rgba(255,255,255,.3);
+    margin-top: .4rem;
+}
+
+/* Price breakdown table */
+.apc-price-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.apc-breakdown-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    padding: .5rem 0;
+    font-size: .85rem;
+    color: rgba(255,255,255,.55);
+    border-bottom: 1px solid rgba(255,255,255,.06);
 }
 
-.avia-jet-card__name {
-    font-family: var(--avia-font-serif);
-    font-size: 1.15rem;
+.apc-breakdown-row:last-child { border-bottom: none; }
+
+.apc-breakdown-row--total {
+    color: var(--apc-white);
     font-weight: 600;
-    color: var(--avia-white);
+    font-size: .9rem;
+    padding-top: .875rem;
+    border-top: 1px solid rgba(255,255,255,.15);
+    border-bottom: none;
+    margin-top: .25rem;
 }
 
-.avia-jet-card__class {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    background: rgba(201,168,76,0.2);
-    color: var(--avia-gold-light);
-    padding: 0.2rem 0.55rem;
-    border-radius: 20px;
-    border: 1px solid rgba(201,168,76,0.3);
+.apc-price-cta {
+    text-align: center;
+    margin-top: 1.25rem;
 }
 
-.avia-jet-card__body {
-    padding: 1rem 1.25rem;
+/* ── Aircraft jet grid ───────────────────────────────────── */
+.apc-jet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem 1.75rem;
+    background: var(--apc-bg);
 }
 
-.avia-jet-card__stats {
+.apc-jet-card {
+    background: var(--apc-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r);
+    overflow: hidden;
+    transition: box-shadow var(--apc-trans), transform var(--apc-trans);
     display: flex;
-    gap: 0.75rem;
+    flex-direction: column;
+}
+
+.apc-jet-card:hover {
+    box-shadow: var(--apc-shadow-md);
+    transform: translateY(-2px);
+}
+
+.apc-jet-card__head {
+    background: var(--apc-slate);
+    padding: .875rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.apc-jet-card__name {
+    font-family: var(--apc-f-serif);
+    font-size: 1.05rem;
+    color: var(--apc-white);
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.apc-jet-card__class {
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--apc-gold-rule);
+    border: 1px solid rgba(252,211,77,.25);
+    border-radius: 3px;
+    padding: .15rem .45rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.apc-jet-card__body {
+    padding: .875rem 1rem;
+    flex: 1;
+}
+
+.apc-jet-specs {
+    display: flex;
+    gap: 1rem;
     flex-wrap: wrap;
 }
 
-.avia-jet-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
+.apc-jet-spec { display: flex; flex-direction: column; gap: .1rem; }
 
-.avia-jet-stat__label {
-    font-size: 0.63rem;
+.apc-jet-spec__label {
+    font-size: .6rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--avia-muted);
+    letter-spacing: .09em;
+    color: var(--apc-stone);
 }
 
-.avia-jet-stat__value {
-    font-size: 0.88rem;
+.apc-jet-spec__value {
+    font-size: .875rem;
     font-weight: 600;
-    color: var(--avia-text);
+    color: var(--apc-ink);
 }
 
-.avia-jet-card__footer {
-    padding: 0.75rem 1.25rem;
-    border-top: 1px solid var(--avia-border);
+.apc-jet-card__foot {
+    padding: .625rem 1rem;
+    border-top: 1px solid var(--apc-rule);
     display: flex;
     justify-content: flex-end;
 }
 
-/* ─── Empty Legs ─── */
-.avia-el-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 0 2rem 1.75rem;
+/* ── Empty legs ──────────────────────────────────────────── */
+.apc-el-list {
+    padding: 0 1.75rem 1.5rem;
+    background: var(--apc-bg);
 }
 
-.avia-el-card {
+.apc-el-item {
+    background: var(--apc-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    padding: 1rem 1.25rem;
+    margin-top: .625rem;
     display: grid;
-    grid-template-columns: 1fr auto 1fr auto;
-    gap: 1rem;
+    grid-template-columns: 1fr auto 1fr 1fr auto;
+    gap: .75rem;
     align-items: center;
-    padding: 1.1rem 1.25rem;
-    border-bottom: 1px solid var(--avia-border);
-    transition: background var(--avia-transition);
+    transition: box-shadow var(--apc-trans), border-color var(--apc-trans);
 }
 
-.avia-el-card:hover { background: var(--avia-off-white); }
-
-.avia-el-card:first-child { border-top: 1px solid var(--avia-border); }
-
-.avia-el-route {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+.apc-el-item:hover {
+    box-shadow: var(--apc-shadow);
+    border-color: var(--apc-gold-rule);
 }
 
-.avia-el-airport {
+.apc-el-airport {
     font-weight: 600;
-    color: var(--avia-text);
-    font-size: 0.9rem;
+    font-size: .9rem;
+    color: var(--apc-ink);
 }
 
-.avia-el-city {
-    font-size: 0.75rem;
-    color: var(--avia-muted);
+.apc-el-city {
+    font-size: .75rem;
+    color: var(--apc-stone);
+    margin-top: .1rem;
 }
 
-.avia-el-arrow {
+.apc-el-arrow {
+    color: var(--apc-gold);
     font-size: 1.25rem;
-    color: var(--avia-gold);
+    font-weight: 300;
     flex-shrink: 0;
 }
 
-.avia-el-info {
+.apc-el-meta { font-size: .8rem; color: var(--apc-slate-soft); }
+.apc-el-meta strong { color: var(--apc-ink); }
+
+.apc-el-date {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--apc-ink);
     text-align: right;
 }
 
-.avia-el-date {
-    font-weight: 600;
-    color: var(--avia-text);
-    font-size: 0.85rem;
-}
-
-.avia-el-aircraft {
-    font-size: 0.75rem;
-    color: var(--avia-muted);
-}
-
-.avia-el-actions {
-    flex-shrink: 0;
-}
-
-/* ─── Badges ─── */
-.avia-badge {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.25rem 0.7rem;
-    border-radius: 20px;
+/* ── Live badge ──────────────────────────────────────────── */
+.apc-live-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: .4rem;
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #86efac;
+    background: rgba(134,239,172,.1);
+    border: 1px solid rgba(134,239,172,.2);
+    border-radius: 20px;
+    padding: .2rem .65rem;
 }
 
-.avia-badge--live {
-    background: rgba(26,138,90,0.15);
-    color: #1a8a5a;
-    border: 1px solid rgba(26,138,90,0.3);
-    animation: avia-pulse 2s ease-in-out infinite;
+.apc-live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: apc-pulse 1.8s ease-in-out infinite;
 }
 
-@keyframes avia-pulse {
+@keyframes apc-pulse {
     0%, 100% { opacity: 1; }
-    50%       { opacity: 0.55; }
+    50%       { opacity: .35; }
 }
 
-/* ─── States ─── */
-.avia-loading {
+/* ── Success state ───────────────────────────────────────── */
+.apc-success {
     text-align: center;
-    color: var(--avia-muted);
-    font-size: 0.85rem;
-    padding: 2rem;
+    padding: 3rem 2rem;
+    animation: apc-slide-in .4s ease both;
 }
 
-.avia-error {
-    margin: 0 2rem 1.5rem;
-    padding: 0.9rem 1.25rem;
-    background: rgba(192,57,43,0.08);
-    border: 1.5px solid rgba(192,57,43,0.25);
-    border-radius: 8px;
-    color: var(--avia-error);
-    font-size: 0.85rem;
+.apc-success__icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: .75rem;
 }
 
-.avia-success {
-    text-align: center;
-    padding: 2.5rem 2rem;
-}
-
-.avia-success__icon { font-size: 3rem; margin-bottom: 1rem; }
-
-.avia-success h3 {
-    font-family: var(--avia-font-serif);
+.apc-success__title {
+    font-family: var(--apc-f-serif);
     font-size: 1.75rem;
-    color: var(--avia-text);
-    margin: 0 0 0.5rem;
+    font-weight: 400;
+    color: var(--apc-ink);
+    margin: 0 0 .5rem;
 }
 
-.avia-success p {
-    color: var(--avia-muted);
-    font-size: 0.9rem;
+.apc-success__text {
+    color: var(--apc-slate-soft);
+    font-size: .9rem;
+    line-height: 1.6;
+    max-width: 420px;
+    margin: 0 auto;
 }
 
-/* ─── Responsive ─── */
-@media (max-width: 680px) {
-    .avia-widget__header { padding: 1.25rem 1.25rem; }
-    .avia-form, .avia-filters { padding: 1.25rem; }
-    .avia-aircraft-grid { padding: 1.25rem; }
-    .avia-el-grid { padding: 0 1.25rem 1.25rem; }
-    .avia-result { padding: 1.25rem; }
-    .avia-widget__title { font-size: 1.25rem; }
-    .avia-price-value { font-size: 2.25rem; }
-    .avia-el-card {
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto;
-    }
-    .avia-el-arrow { display: none; }
-    .avia-swap-btn { display: none; }
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .apc-widget__header { padding: 1rem 1.25rem; }
+    .apc-widget__body, .apc-filters { padding: 1.25rem; }
+    .apc-widget__title { font-size: 1.15rem; }
+    .apc-price-hero__value { font-size: 2.15rem; }
+    .apc-jet-grid { padding: 1.25rem; grid-template-columns: 1fr; }
+    .apc-el-list  { padding: 0 1.25rem 1.25rem; }
+    .apc-el-item  { grid-template-columns: 1fr auto 1fr; grid-template-rows: auto auto; }
+    .apc-el-date, .apc-el-actions { grid-column: 1/-1; text-align: left; }
+    .apc-mode-tabs { display: none; }
+    .apc-swap { display: none; }
+    .apc-form__field--sm { flex: 0 0 100%; }
+}
+
+/* Utility */
+.apc-hidden { display: none !important; }
+
+/* ─── Advanced Settings Panel ─────────────────────── */
+.apc-btn--secondary {
+    background: transparent;
+    color: var(--apc-slate-mid);
+    border: 1.5px solid var(--apc-rule);
+}
+.apc-btn--secondary:hover {
+    border-color: var(--apc-gold);
+    color: var(--apc-gold);
+    background: var(--apc-gold-pale);
+}
+
+.apc-advanced-panel {
+    background: var(--apc-off-white);
+    border: 1.5px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    padding: 1.25rem;
+    margin-top: .75rem;
+}
+
+.apc-advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.apc-field-hint {
+    font-size: .68rem;
+    color: var(--apc-stone);
+    margin: .25rem 0 0;
+    line-height: 1.4;
+}
+
+/* ─── Timezone label next to time input ───────────── */
+.apc-tz-label {
+    font-size: .65rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--apc-gold);
+    margin-left: .35rem;
+}
+
+/* ─── Results link to AviaPages ───────────────────── */
+.apc-results-link a {
+    font-size: .8rem;
+}
+
+/* ─── Quick Stats Bar ─────────────────────────────── */
+.apc-results-wrap {
+    border-top: 2px solid var(--apc-gold-rule);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    animation: apc-slide-in .3s ease both;
+}
+
+.apc-quickstats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--apc-slate);
+    border-radius: var(--apc-r-sm);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.apc-quickstat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.25rem;
+    flex: 1;
+    min-width: 100px;
+    border-right: 1px solid rgba(255,255,255,.08);
+    text-align: center;
+    gap: .2rem;
+}
+
+.apc-quickstat:last-child { border-right: none; }
+.apc-quickstat--link { padding: .75rem 1.25rem; }
+
+.apc-quickstat__icon { font-size: 1.1rem; }
+
+.apc-quickstat__label {
+    font-size: .62rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: rgba(255,255,255,.45);
+}
+
+.apc-quickstat__val {
+    font-family: var(--apc-f-serif);
+    font-size: 1.2rem;
+    color: var(--apc-gold-rule);
+    font-weight: 400;
+}
+
+/* ─── Iframe Embed ────────────────────────────────── */
+.apc-iframe-wrap {
+    border: 1.5px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.apc-iframe-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--apc-stone);
+    font-size: .875rem;
+}
+
+.apc-results-iframe {
+    width: 100%;
+    height: 900px;
+    border: none;
+    display: block;
+    background: #fff;
+}
+
+.apc-iframe-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    background: var(--apc-off-white);
+    border-top: 1px solid var(--apc-rule);
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.apc-calc-cta {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+@media (max-width: 640px) {
+    .apc-quickstats { flex-direction: column; }
+    .apc-quickstat  { flex-direction: row; justify-content: space-between; width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .apc-results-iframe { height: 600px; }
 }
