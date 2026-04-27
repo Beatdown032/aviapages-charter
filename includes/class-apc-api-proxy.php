@@ -223,8 +223,9 @@ class APC_API_Proxy {
         try {
             $price_payload                       = $payload;
             $price_payload['commission_percent'] = $commission;
-            if ( isset( $flight['airway_time'] ) ) {
-                $price_payload['flight_time'] = $flight['airway_time'];
+            $flight_time = $flight['airway_time_weather_impacted'] ?? $flight['airway_time'] ?? null;
+            if ( $flight_time !== null ) {
+                $price_payload['flight_time'] = $flight_time;
             }
             $price = self::price_calculator( $price_payload );
             self::log( 'price_calculator keys: ' . implode( ', ', array_keys( $price ) ) );

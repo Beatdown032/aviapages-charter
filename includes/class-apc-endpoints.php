@@ -170,11 +170,16 @@ class APC_Endpoints {
 
         // Build payload with CONFIRMED field names
         $body = [
-            'departure_airport' => $from_icao,   // ICAO string
-            'arrival_airport'   => $to_icao,     // ICAO string
-            'aircraft'          => $ac_icao,     // aircraft_type_icao string
-            'departure_date'    => $date,
-            'pax'               => $pax,
+            'departure_airport'                  => $from_icao,   // ICAO string
+            'arrival_airport'                    => $to_icao,     // ICAO string
+            'aircraft'                           => $ac_icao,     // aircraft_type_icao string
+            'departure_date'                     => $date,
+            'pax'                                => $pax,
+            'airway_time_weather_impacted'        => true,
+            'airway_time'                        => true,
+            'great_circle_time'                  => true,
+            'airway_fuel_weather_impacted'        => true,
+            'airway_fuel_weather_impacted_detailed' => true,
         ];
 
         if ( $time && preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
@@ -215,11 +220,16 @@ class APC_Endpoints {
         if ( ! $dt || $dt->format( 'Y-m-d' ) !== $date ) self::fail( 'Please select a valid departure date.' );
 
         $body = [
-            'departure_airport' => $from_icao,
-            'arrival_airport'   => $to_icao,
-            'aircraft'          => $ac_icao,
-            'departure_date'    => $date,
-            'pax'               => $pax,
+            'departure_airport'                    => $from_icao,
+            'arrival_airport'                      => $to_icao,
+            'aircraft'                             => $ac_icao,
+            'departure_date'                       => $date,
+            'pax'                                  => $pax,
+            'airway_time_weather_impacted'          => true,
+            'airway_time'                          => true,
+            'great_circle_time'                    => true,
+            'airway_fuel_weather_impacted'          => true,
+            'airway_fuel_weather_impacted_detailed' => true,
         ];
 
         if ( $time && preg_match( '/^\d{2}:\d{2}$/', $time ) ) $body['departure_time'] = $time;
