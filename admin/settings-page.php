@@ -256,7 +256,7 @@
                 <tbody>
                     <?php
                     $shortcodes = [
-                        '[aviapages_calculator]'   => [ 'Chained Flight + Price Calculator — shows map &amp; full results from AviaPages', 'title, show_price="yes|no"' ],
+                        '[aviapages_calculator]'   => [ 'Chained Flight Time Calculator — shows map &amp; full results from AviaPages', 'title, show_price="yes|no"' ],
                         '[aviapages_aircraft]'     => [ 'Browse &amp; filter available charter jets', 'title, limit="12"' ],
                         '[aviapages_empty_legs]'   => [ 'Live empty leg deals board with filters', 'title, limit="20"' ],
                         '[aviapages_charter_form]' => [ 'Charter inquiry form → lead email + API submission', 'title' ],
