@@ -2,20 +2,32 @@
 /**
  * APC_API_Proxy — Server-side proxy to AviaPages API.
  *
- * CONFIRMED FROM DEBUG RESPONSE (2026-04-17):
- * The flight_calculator v3 API:
- *   - Returns HTTP 200 even on errors, with an 'errors' array
- *   - Field names: 'departure_airport', 'arrival_airport', 'aircraft'
- *   - Integer airport IDs do NOT work → must use ICAO codes (strings)
- *   - Aircraft field needs aircraft_type ICAO (e.g. "HDJT") not profile_id
+ * Auth: Token <key> (DRF TokenAuth)
  *
- * Correct payload:
- *   departure_airport → ICAO string  e.g. "RPLL"
- *   arrival_airport   → ICAO string  e.g. "OMDB"
- *   aircraft          → aircraft type ICAO string e.g. "HDJT"  (optional)
- *   departure_date    → "YYYY-MM-DD"
- *   departure_time    → "HH:MM"      (optional)
- *   pax               → integer      (optional)
+ * CONFIRMED CORRECT PAYLOAD (from AviaPages CTO, 2026-04-18):
+ *
+ *   departure_airport                  → ICAO string  e.g. "RPLL"
+ *   arrival_airport                    → ICAO string  e.g. "OMDB"
+ *   aircraft                           → aircraft type ICAO  e.g. "HDJT"
+ *   departure_date                     → "YYYY-MM-DD"
+ *   departure_time                     → "HH:MM"      (optional)
+ *   pax                                → integer      (optional)
+ *   etops                              → boolean      (optional)
+ *   payload                            → integer kg   (optional)
+ *   extra_fuel                         → integer kg   (optional)
+ *
+ * DATA-UNLOCK PARAMETERS (CTO confirmed — required to get flight data):
+ *   airway_time_weather_impacted       → true  (recommended, most accurate)
+ *   airway_time                        → true  (standard airway time)
+ *   great_circle_time                  → true  (great circle time)
+ *   airway_fuel_weather_impacted       → true  (fuel with weather impact)
+ *   airway_fuel_weather_impacted_detailed → true (detailed fuel breakdown)
+ *
+ * Without these boolean flags the API only returns airport/aircraft confirmation.
+ * With them it returns full flight time, distance, wind, fuel, route, request_id.
+ *
+ * IMPORTANT: API returns HTTP 200 even on errors, with an 'errors' array.
+ * parse() checks for errors[] and throws RuntimeException.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -42,7 +54,7 @@ class APC_API_Proxy {
         return max( 0, (int) get_option( 'apc_cache_ttl', 300 ) );
     }
 
-    /* ── HTTP ────────────────────────────────────── */
+    /* ── HTTP layer ──────────────────────────────── */
 
     public static function get( string $endpoint, array $params = [], ?int $ttl = null ): array {
         $ttl = $ttl ?? self::cache_ttl();
@@ -69,7 +81,7 @@ class APC_API_Proxy {
         $body = wp_json_encode( $payload );
         if ( $body === false ) throw new RuntimeException( 'Failed to encode request payload.' );
 
-        error_log( "[APC] POST {$endpoint} → " . substr( $body, 0, 500 ) );
+        error_log( '[APC] POST ' . $endpoint . ' → ' . substr( $body, 0, 600 ) );
 
         $resp = wp_remote_post( APC_API_BASE . $endpoint, [
             'headers'   => self::headers(),
@@ -81,17 +93,9 @@ class APC_API_Proxy {
         return self::parse( $resp, 'POST', $endpoint );
     }
 
-    /**
-     * Parse response.
-     *
-     * IMPORTANT: The AviaPages flight_calculator returns HTTP 200 even
-     * on errors, with an 'errors' array in the body. We must check for
-     * this AFTER successful HTTP parsing.
-     */
     private static function parse( $resp, string $method, string $ep ): array {
         if ( is_wp_error( $resp ) ) {
-            $err = $resp->get_error_message();
-            error_log( "[APC] WP_Error {$method} {$ep}: {$err}" );
+            error_log( '[APC] WP_Error ' . $method . ' ' . $ep . ': ' . $resp->get_error_message() );
             throw new RuntimeException( 'Could not reach the AviaPages API. Check server connectivity.' );
         }
 
@@ -99,35 +103,28 @@ class APC_API_Proxy {
         $raw  = wp_remote_retrieve_body( $resp );
         $data = json_decode( $raw, true );
 
-        error_log( "[APC] {$method} {$ep} HTTP {$code}: " . substr( $raw, 0, 800 ) );
+        error_log( '[APC] ' . $method . ' ' . $ep . ' HTTP ' . $code . ': ' . substr( $raw, 0, 1000 ) );
 
         if ( $code === 429 ) throw new RuntimeException( 'API rate limit reached. Please try again shortly.' );
         if ( $code === 401 || $code === 403 ) throw new RuntimeException( 'API authentication failed. Check your API key in Charter Suite → Settings.' );
         if ( $code === 404 ) throw new RuntimeException( "API endpoint not found: {$ep}" );
-        if ( $code >= 500 ) throw new RuntimeException( 'AviaPages API is temporarily unavailable. Please try again.' );
+        if ( $code >= 500 )  throw new RuntimeException( 'AviaPages API is temporarily unavailable.' );
+        if ( $code === 400 ) throw new RuntimeException( self::extract_error( $data ) ?? 'Invalid request parameters.' );
+        if ( $code !== 200 && $code !== 201 ) throw new RuntimeException( "Unexpected API response (HTTP {$code})." );
+        if ( ! is_array( $data ) ) throw new RuntimeException( 'API returned malformed JSON.' );
 
-        // Handle 400 with field errors
-        if ( $code === 400 ) {
-            throw new RuntimeException( self::extract_error( $data ) ?? 'Invalid request parameters.' );
-        }
-
-        // Accept 200 and 201
-        if ( $code !== 200 && $code !== 201 ) {
-            throw new RuntimeException( "Unexpected API response (HTTP {$code})." );
-        }
-
-        if ( ! is_array( $data ) ) {
-            throw new RuntimeException( 'API returned malformed JSON.' );
-        }
-
-        // CRITICAL: flight_calculator returns HTTP 200 with 'errors' array on failure
-        // Check for this BEFORE returning data
+        // AviaPages returns HTTP 200 with errors[] on validation failure.
+        // CONFIRMED response structure (debug 2026-04-27):
+        //   { "fuel": {...}, "time": {...}, "airport": {...}, "aircraft": "..." }
+        // Data is NESTED — check inside fuel/time sub-objects, not top level.
         if ( ! empty( $data['errors'] ) && is_array( $data['errors'] ) ) {
-            $messages = array_map(
-                static fn( $e ) => $e['message'] ?? 'Unknown error',
-                $data['errors']
-            );
-            throw new RuntimeException( implode( ' | ', $messages ) );
+            $has_data = ! empty( $data['fuel'] )      // fuel sub-object present
+                     || ! empty( $data['time'] )      // time sub-object present
+                     || isset( $data['request_id'] ); // or request_id at top level
+            if ( ! $has_data ) {
+                $messages = array_map( static fn( $e ) => $e['message'] ?? 'Unknown error', $data['errors'] );
+                throw new RuntimeException( implode( ' | ', $messages ) );
+            }
         }
 
         return $data;
@@ -148,19 +145,10 @@ class APC_API_Proxy {
         return $msgs ? implode( ' | ', $msgs ) : null;
     }
 
-    private static function log( string $msg ): void {
-        error_log( '[APC] ' . $msg );
-    }
-
     /* ══════════════════════════════════════════════
      *  PUBLIC API WRAPPERS
      * ══════════════════════════════════════════════ */
 
-    /**
-     * Airport search — returns full objects.
-     * Each result has: id (int), icao (string), iata (string), name, city, country
-     * The ICAO string is what flight_calculator needs.
-     */
     public static function airports( string $query, int $limit = 15 ): array {
         return self::get( '/airports/', [ 'search' => $query, 'page_size' => $limit ], 600 );
     }
@@ -173,12 +161,6 @@ class APC_API_Proxy {
         return self::get( '/aircraft/', array_merge( [ 'page_size' => $limit ], $filters ), 300 );
     }
 
-    /**
-     * Aircraft profiles — each has:
-     *   aircraft_profile_id  (int)   — for profile-based calc (if supported)
-     *   aircraft_type_icao   (string) — ICAO type code e.g. "HDJT"
-     *   aircraft_type_name   (string) — e.g. "HondaJet"
-     */
     public static function aircraft_profiles( array $params = [] ): array {
         return self::get( '/aircraft_profiles/', array_merge(
             [ 'page_size' => 100, 'performance' => 'true' ],
@@ -189,20 +171,18 @@ class APC_API_Proxy {
     /**
      * Flight Calculator — POST /v3/flight_calculator/
      *
-     * CONFIRMED correct payload format (from debug 2026-04-17):
-     *   departure_airport → ICAO string  (e.g. "RPLL")
-     *   arrival_airport   → ICAO string  (e.g. "OMDB")
-     *   aircraft          → aircraft_type_icao OR aircraft_profile_id (try both)
-     *   departure_date    → "YYYY-MM-DD"
-     *   departure_time    → "HH:MM"
-     *   pax               → integer
-     *
-     * Returns HTTP 200 with either:
-     *   Success: { request_id: int, ... flight data ... }
-     *   Error:   { errors: [{code, scope, message}], airport: {...}, aircraft: null }
-     *   (errors array is checked in parse() and thrown as RuntimeException)
+     * Uses CTO-confirmed data-unlock boolean parameters.
+     * Without them: only returns { airport:{...}, aircraft:"..." }
+     * With them: returns full flight_time, distance, wind, fuel, route, request_id
      */
     public static function flight_calculator( array $payload ): array {
+        // CTO-confirmed data-unlock parameters (all required for full data)
+        $payload['airway_time_weather_impacted']          = true;
+        $payload['airway_time']                           = true;
+        $payload['great_circle_time']                     = true;
+        $payload['airway_fuel_weather_impacted']          = true;
+        $payload['airway_fuel_weather_impacted_detailed'] = true;
+
         return self::post( '/flight_calculator/', $payload );
     }
 
@@ -211,25 +191,42 @@ class APC_API_Proxy {
     }
 
     /**
-     * Chained: Flight → Price (best-effort price).
-     * Returns { flight: {...}, price: {...} }
+     * Chained: Flight Calculator → Price Calculator
+     *
+     * Step 1: flight_calculator() with data-unlock params
+     *         Returns: request_id, airway_time_weather_impacted (minutes),
+     *                  airway_time (minutes), distance (km), wind (kts),
+     *                  airway_fuel_weather_impacted (kg), route[], etc.
+     *
+     * Step 2: price_calculator() with same ICAO payload + commission_percent
+     *         Returns: total_price, base_price, fees, taxes breakdown
+     *
+     * Returns: { flight: {...}, price: {...} }
      */
     public static function flight_and_price( array $payload, float $commission ): array {
+        // Step 1 — Full flight calculation
         $flight = self::flight_calculator( $payload );
 
-        self::log( 'flight_calculator keys: ' . implode( ', ', array_keys( $flight ) ) );
+        error_log( '[APC] flight_calculator response keys: ' . implode( ', ', array_keys( $flight ) ) );
 
+        // Step 2 — Price calculation (best-effort)
         $price = [];
         try {
             $price_payload                       = $payload;
             $price_payload['commission_percent'] = $commission;
-            if ( isset( $flight['airway_time'] ) ) {
-                $price_payload['flight_time'] = $flight['airway_time'];
+
+            // Pass best available flight time to price calculator
+            foreach ( [ 'airway_time_weather_impacted', 'airway_time', 'great_circle_time' ] as $k ) {
+                if ( isset( $flight[ $k ] ) && is_numeric( $flight[ $k ] ) ) {
+                    $price_payload['flight_time'] = (int) $flight[ $k ];
+                    break;
+                }
             }
+
             $price = self::price_calculator( $price_payload );
-            self::log( 'price_calculator keys: ' . implode( ', ', array_keys( $price ) ) );
+            error_log( '[APC] price_calculator response keys: ' . implode( ', ', array_keys( $price ) ) );
         } catch ( RuntimeException $e ) {
-            self::log( 'price_calculator failed (non-fatal): ' . $e->getMessage() );
+            error_log( '[APC] price_calculator non-fatal: ' . $e->getMessage() );
         }
 
         return [ 'flight' => $flight, 'price' => $price ];
