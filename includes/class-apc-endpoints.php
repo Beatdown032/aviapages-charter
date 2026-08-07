@@ -91,6 +91,9 @@ class APC_Endpoints {
                                 : ( $ap['country_name'] ?? '' ),
                 'timezone'   => $ap['time_zone']  ?? '',
                 'time_shift' => $ap['time_shift'] ?? '',
+                // Coordinates for the map
+                'lat'        => $ap['lat']  ?? $ap['latitude']  ?? null,
+                'lng'        => $ap['lng']  ?? $ap['longitude'] ?? null,
             ], $raw['results'] ?? [] );
         } );
     }
@@ -168,21 +171,27 @@ class APC_Endpoints {
 
         $commission = max( 0.0, (float) get_option( 'apc_commission', 15 ) );
 
-        // Build payload with CONFIRMED field names
+        // Build payload — confirmed field names + required data flags from AviaPages CTO
         $body = [
-            'departure_airport' => $from_icao,   // ICAO string
-            'arrival_airport'   => $to_icao,     // ICAO string
-            'aircraft'          => $ac_icao,     // aircraft_type_icao string
+            'departure_airport' => $from_icao,
+            'arrival_airport'   => $to_icao,
+            'aircraft'          => $ac_icao,
             'departure_date'    => $date,
             'pax'               => $pax,
+            // Required flags to get flight time & fuel data (confirmed by AviaPages CTO)
+            'airway_time_weather_impacted'          => true,
+            'airway_time'                           => true,
+            'great_circle_time'                     => true,
+            'airway_fuel_weather_impacted'          => true,
+            'airway_fuel_weather_impacted_detailed' => true,
         ];
 
         if ( $time && preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
             $body['departure_time'] = $time;
         }
-        if ( $etops )         $body['etops']       = true;
-        if ( $payload_kg > 0 ) $body['payload']    = $payload_kg;
-        if ( $xfuel      > 0 ) $body['extra_fuel'] = $xfuel;
+        if ( $etops )          $body['etops']       = true;
+        if ( $payload_kg > 0 ) $body['payload']     = $payload_kg;
+        if ( $xfuel      > 0 ) $body['extra_fuel']  = $xfuel;
 
         self::try_proxy( static function () use ( $body, $commission ) {
             return APC_API_Proxy::flight_and_price( $body, $commission );
@@ -220,6 +229,11 @@ class APC_Endpoints {
             'aircraft'          => $ac_icao,
             'departure_date'    => $date,
             'pax'               => $pax,
+            'airway_time_weather_impacted'          => true,
+            'airway_time'                           => true,
+            'great_circle_time'                     => true,
+            'airway_fuel_weather_impacted'          => true,
+            'airway_fuel_weather_impacted_detailed' => true,
         ];
 
         if ( $time && preg_match( '/^\d{2}:\d{2}$/', $time ) ) $body['departure_time'] = $time;
@@ -359,19 +373,30 @@ class APC_Endpoints {
             'aircraft'          => $ac,
             'departure_date'    => $date,
             'pax'               => $pax,
+            'airway_time_weather_impacted'          => true,
+            'airway_time'                           => true,
+            'great_circle_time'                     => true,
+            'airway_fuel_weather_impacted'          => true,
+            'airway_fuel_weather_impacted_detailed' => true,
         ];
 
         try {
             $raw = APC_API_Proxy::flight_calculator( $payload );
 
             self::ok( [
-                'sent_payload'  => $payload,
-                'raw_flight'    => $raw,
-                'response_keys' => array_keys( $raw ),
-                'request_id'    => $raw['request_id'] ?? $raw['id'] ?? null,
-                'airway_time'   => $raw['airway_time'] ?? null,
-                'distance'      => $raw['distance'] ?? $raw['distance_km'] ?? null,
-                'wind'          => $raw['wind'] ?? $raw['wind_kts'] ?? null,
+                'sent_payload'      => $payload,
+                'raw_flight'        => $raw,
+                'response_keys'     => array_keys( $raw ),
+                'request_id'        => $raw['request_id'] ?? $raw['id'] ?? null,
+                // Nested under 'time' key
+                'time_keys'         => isset( $raw['time'] ) ? array_keys( $raw['time'] ) : [],
+                'time_object'       => $raw['time'] ?? null,
+                // Nested under 'fuel' key
+                'fuel_keys'         => isset( $raw['fuel'] ) ? array_keys( $raw['fuel'] ) : [],
+                'fuel_object'       => $raw['fuel'] ?? null,
+                // Airport + aircraft confirmation
+                'airport'           => $raw['airport'] ?? null,
+                'aircraft'          => $raw['aircraft'] ?? null,
             ] );
         } catch ( RuntimeException $e ) {
             self::fail( 'API error: ' . $e->getMessage() );

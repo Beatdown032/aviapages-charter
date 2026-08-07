@@ -27,7 +27,7 @@ class APC_Shortcodes {
 
     public static function render_calculator( $atts ): string {
         $a = self::atts( [
-            'title'      => 'Flight & Price Calculator',
+            'title'      => 'Flight Time Calculator',
             'show_price' => 'yes',
         ], $atts );
         ob_start();

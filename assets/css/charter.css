@@ -5,13 +5,12 @@
    Fonts: DM Serif Display (headings) + DM Sans (body)
    ================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 /* ── Design tokens ───────────────────────────────────────── */
 :root {
     --apc-ink:        #1c1917;      /* warm near-black */
-    --apc-slate:      #292524;
-    --apc-slate-mid:  #44403c;
+    --apc-slate:      #144D41;
+    --apc-slate-mid:  #1a6254;
     --apc-slate-soft: #78716c;
     --apc-stone:      #a8a29e;
     --apc-rule:       #e7e5e4;
@@ -19,6 +18,7 @@
     --apc-white:      #ffffff;
 
     --apc-gold:       #b45309;      /* amber-700 — rich, not gaudy */
+    --apc-gold-brand: #c9a24b;      /* contact-form brand gold — borders & button */
     --apc-gold-lt:    #d97706;
     --apc-gold-pale:  #fef3c7;
     --apc-gold-rule:  #fcd34d;
@@ -37,8 +37,8 @@
     --apc-shadow-md:  0 4px 6px rgba(28,25,23,.06), 0 12px 40px rgba(28,25,23,.10);
     --apc-trans:      220ms cubic-bezier(.4,0,.2,1);
 
-    --apc-f-serif:    'DM Serif Display', Georgia, serif;
-    --apc-f-sans:     'DM Sans', system-ui, sans-serif;
+    --apc-f-serif:    inherit;
+    --apc-f-sans:     inherit;
 }
 
 /* ── Widget shell ────────────────────────────────────────── */
@@ -46,10 +46,10 @@
     font-family: var(--apc-f-sans);
     font-size: 15px;
     color: var(--apc-ink);
-    background: var(--apc-white);
-    border: 1px solid var(--apc-rule);
-    border-radius: var(--apc-r);
-    box-shadow: var(--apc-shadow);
+    background: #ffffff;
+    border: 1px solid var(--apc-gold-brand);
+    border-radius: 6px;
+    box-shadow: none;
     overflow: hidden;
     margin: 2.5rem 0;
     position: relative;
@@ -130,8 +130,8 @@
 
 /* ── Body / form area ────────────────────────────────────── */
 .apc-widget__body {
-    padding: 1.5rem 1.75rem;
-    background: var(--apc-bg);
+    padding: 1.75rem 2rem;
+    background: #ffffff;
 }
 
 .apc-filters {
@@ -143,10 +143,10 @@
 /* ── Form layout ─────────────────────────────────────────── */
 .apc-form__row {
     display: flex;
-    gap: .875rem;
+    gap: 1.25rem;
     align-items: flex-start;
     flex-wrap: wrap;
-    margin-bottom: .875rem;
+    margin-bottom: 1.25rem;
 }
 
 .apc-form__row:last-child { margin-bottom: 0; }
@@ -159,23 +159,34 @@
 .apc-form__field {
     display: flex;
     flex-direction: column;
-    gap: .35rem;
+    gap: .5rem;
     min-width: 160px;
     flex: 1;
 }
 
 .apc-form__field--grow  { flex: 2; }
-.apc-form__field--sm    { flex: 0 0 110px; min-width: 90px; }
+.apc-form__field--sm    { flex: 0 0 140px; min-width: 120px; }
 .apc-form__field--btn   { justify-content: flex-end; flex: 0 0 auto; }
 
 /* ── Labels ──────────────────────────────────────────────── */
 .apc-label {
-    font-size: .7rem;
+    font-size: .82rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .09em;
-    color: var(--apc-slate-soft);
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--apc-slate);
     user-select: none;
+    /* Reserve a fixed height so an injected timezone label
+       (e.g. "(UTC+08:00)") never pushes the input down, and clip
+       so it can never overlap the neighbouring field's label. */
+    display: flex;
+    align-items: baseline;
+    column-gap: .3rem;
+    min-height: 1.2rem;
+    line-height: 1.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    position: relative;
 }
 
 .apc-req      { color: var(--apc-gold); }
@@ -186,10 +197,10 @@
     font-family: var(--apc-f-sans);
     font-size: .9rem;
     color: var(--apc-ink);
-    background: var(--apc-white);
-    border: 1.5px solid var(--apc-rule);
-    border-radius: var(--apc-r-sm);
-    padding: .6rem .875rem;
+    background: #ffffff;
+    border: 1px solid var(--apc-gold-brand);
+    border-radius: 6px;
+    padding: .75rem 1rem;
     width: 100%;
     box-sizing: border-box;
     transition: border-color var(--apc-trans), box-shadow var(--apc-trans);
@@ -198,9 +209,17 @@
     line-height: 1.4;
 }
 
+/* Ensure the gold rounded border wins over theme / cache defaults */
+.apc-widget input.apc-input,
+.apc-widget .apc-input {
+    border: 1px solid #c9a24b !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+}
+
 .apc-input:focus {
-    border-color: var(--apc-gold);
-    box-shadow: 0 0 0 3px rgba(180,83,9,.12);
+    border-color: var(--apc-gold-brand);
+    box-shadow: 0 0 0 3px rgba(201,162,75,.18);
 }
 
 .apc-input::placeholder { color: var(--apc-stone); }
@@ -225,7 +244,7 @@
     list-style: none;
     margin: 0; padding: .3rem 0;
     z-index: 1000;
-    max-height: 240px;
+    max-height: 320px;
     overflow-y: auto;
     display: none;
 }
@@ -307,6 +326,22 @@
     background: var(--apc-slate);
     color: var(--apc-white);
     box-shadow: 0 2px 8px rgba(28,25,23,.2);
+}
+
+/* Calculate button — brand gold, matching the contact form CTA */
+.apc-calc-submit.apc-btn--primary {
+    background: var(--apc-gold-brand);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(201,162,75,.25);
+    width: 100%;
+    justify-content: center;
+    padding: .85rem 1.4rem;
+}
+
+.apc-calc-submit.apc-btn--primary:hover:not(:disabled) {
+    background: #b8923f;
+    box-shadow: 0 4px 16px rgba(201,162,75,.35);
+    transform: translateY(-1px);
 }
 
 .apc-btn--primary:hover:not(:disabled) {
@@ -458,7 +493,8 @@
     font-size: .63rem;
     text-transform: uppercase;
     letter-spacing: .09em;
-    color: var(--apc-stone);
+    color: var(--apc-slate);
+    font-weight: 600;
     margin-bottom: .25rem;
 }
 
@@ -808,12 +844,12 @@
 
 /* ─── Timezone label next to time input ───────────── */
 .apc-tz-label {
-    font-size: .65rem;
+    font-size: .6rem;
     font-weight: 400;
     text-transform: none;
     letter-spacing: 0;
     color: var(--apc-gold);
-    margin-left: .35rem;
+    margin-left: 0;
 }
 
 /* ─── Results link to AviaPages ───────────────────── */
@@ -917,4 +953,907 @@
     .apc-quickstats { flex-direction: column; }
     .apc-quickstat  { flex-direction: row; justify-content: space-between; width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,.08); }
     .apc-results-iframe { height: 600px; }
+}
+
+/* ══════════════════════════════════════════════════
+   Results Panel — CTO-confirmed field mapping
+   ══════════════════════════════════════════════════ */
+
+.apc-results {
+    border-top: 3px solid var(--apc-gold-rule);
+    animation: apc-slide-in .3s ease both;
+}
+
+.apc-results__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding: 1rem 1.75rem;
+    background: var(--apc-slate);
+}
+
+.apc-results__route-badge {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.apc-results__from,
+.apc-results__to {
+    font-family: var(--apc-f-serif);
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+    letter-spacing: .02em;
+}
+
+/* Stats grid */
+.apc-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0;
+    background: var(--apc-slate);
+    border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.apc-stat {
+    padding: 1.25rem 1.5rem;
+    border-right: 1px solid rgba(255,255,255,.07);
+    text-align: center;
+}
+.apc-stat:last-child { border-right: none; }
+
+.apc-stat__icon  { font-size: 1.25rem; margin-bottom: .3rem; }
+
+.apc-stat__label {
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--apc-slate);
+    font-weight: 600;
+    margin-bottom: .3rem;
+}
+
+.apc-stat__value {
+    font-family: var(--apc-f-serif);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--apc-slate);
+    line-height: 1.1;
+}
+
+.apc-stat__sub {
+    font-size: .7rem;
+    color: rgba(255,255,255,.35);
+    margin-top: .2rem;
+    min-height: 1rem;
+}
+
+/* Section label */
+.apc-section-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+    padding: 1rem 1.75rem .5rem;
+    border-top: 1px solid var(--apc-rule);
+    background: var(--apc-white);
+}
+
+/* Fuel breakdown table */
+.apc-fuel-breakdown { background: var(--apc-white); }
+
+.apc-fuel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+    font-family: var(--apc-f-sans);
+    margin-bottom: 0;
+}
+
+.apc-fuel-table th {
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--apc-stone);
+    padding: .5rem 1.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--apc-rule);
+    background: var(--apc-off-white);
+}
+
+.apc-fuel-table td {
+    padding: .45rem 1.75rem;
+    color: var(--apc-text);
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+.apc-fuel-table tbody tr:hover { background: var(--apc-off-white); }
+
+.apc-fuel-total td {
+    font-weight: 700;
+    color: var(--apc-ink);
+    background: var(--apc-gold-pale);
+    border-top: 2px solid var(--apc-gold-rule);
+    border-bottom: none;
+}
+
+/* Tech stops */
+.apc-tech-stops { background: var(--apc-white); padding-bottom: 1rem; }
+.apc-tech-stops__list {
+    padding: .5rem 1.75rem;
+    font-size: .875rem;
+    color: var(--apc-slate-mid);
+}
+
+/* Price section */
+.apc-price-section {
+    background: var(--apc-slate);
+    padding: 1.5rem 1.75rem;
+    border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.apc-price-hero { text-align: center; margin-bottom: 1.25rem; }
+
+.apc-price-hero__label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(255,255,255,.4);
+    margin-bottom: .4rem;
+}
+
+.apc-price-hero__value {
+    font-family: var(--apc-f-serif);
+    font-size: 2.75rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+    line-height: 1;
+}
+
+.apc-price-hero__note {
+    font-size: .72rem;
+    color: rgba(255,255,255,.3);
+    margin-top: .35rem;
+}
+
+.apc-price-breakdown {
+    max-width: 480px;
+    margin: 0 auto 1.25rem;
+}
+
+.apc-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: .45rem 0;
+    font-size: .85rem;
+    color: rgba(255,255,255,.5);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.apc-breakdown-row--total {
+    color: var(--apc-white);
+    font-weight: 600;
+    font-size: .9rem;
+    border-bottom: none;
+    border-top: 1px solid rgba(255,255,255,.15);
+    padding-top: .75rem;
+}
+
+.apc-price-cta { text-align: center; }
+
+@media (max-width: 640px) {
+    .apc-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .apc-stat { border-bottom: 1px solid rgba(255,255,255,.07); }
+    .apc-results__header { padding: .875rem 1.25rem; }
+    .apc-fuel-table th,
+    .apc-fuel-table td { padding-left: 1rem; padding-right: 1rem; }
+    .apc-section-label { padding-left: 1rem; }
+    .apc-price-section { padding: 1.25rem 1rem; }
+}
+
+/* Sub-label under stat value (e.g. base time under wind-impacted time) */
+.apc-stat__sub {
+    font-size: .65rem;
+    color: rgba(255,255,255,.4);
+    margin-top: .15rem;
+    min-height: .9rem;
+}
+
+/* ═══════════════════════════════════════════════
+   Calculator Results Panel
+═══════════════════════════════════════════════ */
+
+.apc-results-panel {
+    border-top: 2px solid var(--apc-gold-rule);
+    margin-top: 1.25rem;
+    animation: apc-slide-in .3s ease both;
+}
+
+/* Route header bar */
+.apc-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    background: var(--apc-slate);
+    padding: .875rem 1.25rem;
+    border-radius: var(--apc-r-sm) var(--apc-r-sm) 0 0;
+}
+
+.apc-results-route {
+    font-family: var(--apc-f-serif);
+    font-size: 1.25rem;
+    color: var(--apc-gold-rule);
+    font-weight: 400;
+    letter-spacing: .03em;
+}
+
+.apc-results-meta {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    flex-wrap: wrap;
+    font-size: .78rem;
+    color: rgba(255,255,255,.5);
+}
+
+/* Primary stats grid */
+.apc-res-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1px;
+    background: var(--apc-rule);
+    border: 1px solid var(--apc-rule);
+    border-top: none;
+}
+
+.apc-res-stat {
+    background: var(--apc-white);
+    padding: 1.1rem 1rem;
+    text-align: center;
+    transition: background var(--apc-trans);
+}
+
+.apc-res-stat:hover { background: var(--apc-off-white); }
+
+.apc-res-stat__icon  { font-size: 1.3rem; margin-bottom: .3rem; }
+
+.apc-res-stat__label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--apc-stone);
+    line-height: 1.3;
+    margin-bottom: .35rem;
+}
+
+.apc-res-stat__value {
+    font-family: var(--apc-f-serif);
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: var(--apc-ink);
+}
+
+/* Section shared styles */
+.apc-section-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+    display: block;
+    margin-bottom: .75rem;
+}
+
+/* Fuel breakdown */
+.apc-fuel-section,
+.apc-tech-stops-row,
+.apc-route-row {
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--apc-rule);
+}
+
+.apc-fuel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: .5rem;
+}
+
+.apc-fuel-item {
+    background: var(--apc-off-white);
+    border-radius: var(--apc-r-sm);
+    padding: .625rem .875rem;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.apc-fuel-item__label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--apc-stone);
+}
+
+.apc-fuel-item__value {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--apc-ink);
+}
+
+/* Tech stops */
+.apc-tech-stops-row {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.apc-tech-stops-list-val {
+    font-size: .85rem;
+    color: var(--apc-slate-mid);
+    font-weight: 500;
+}
+
+/* Route string */
+.apc-route-string {
+    font-family: monospace;
+    font-size: .78rem;
+    color: var(--apc-slate-soft);
+    line-height: 1.7;
+    word-break: break-all;
+    background: var(--apc-off-white);
+    border-radius: var(--apc-r-sm);
+    padding: .75rem 1rem;
+}
+
+/* Price section */
+.apc-price-section {
+    background: var(--apc-slate);
+    border-radius: 0 0 var(--apc-r-sm) var(--apc-r-sm);
+    padding: 1.5rem;
+    margin-top: 1px;
+    border-top: 2px solid var(--apc-gold);
+}
+
+/* ─── Stats Bar (CTO confirmed response) ─────────────── */
+.apc-stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background: var(--apc-slate);
+    border-radius: var(--apc-r-sm);
+    overflow: hidden;
+    margin: 1.25rem 0 1rem;
+    border: 1px solid rgba(255,255,255,.05);
+}
+
+.apc-stat-pill {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem 1.25rem;
+    flex: 1;
+    min-width: 130px;
+    border-right: 1px solid rgba(255,255,255,.08);
+}
+
+.apc-stat-pill:last-child { border-right: none; }
+.apc-stat-pill--price { background: rgba(201,168,76,.08); }
+.apc-stat-pill--link  { flex: 0 0 auto; padding: .75rem 1.25rem; align-items: center; justify-content: center; }
+
+.apc-stat-pill__icon { font-size: 1.25rem; flex-shrink: 0; }
+
+.apc-stat-pill__label {
+    font-size: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: rgba(255,255,255,.4);
+    margin-bottom: .2rem;
+}
+
+.apc-stat-pill__val {
+    font-family: var(--apc-f-serif);
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+    line-height: 1.1;
+}
+
+.apc-stat-pill__sub {
+    font-size: .68rem;
+    color: rgba(255,255,255,.35);
+    margin-top: .1rem;
+    min-height: .9rem;
+}
+
+/* ─── Fuel Detail Table ───────────────────────────────── */
+.apc-fuel-table-wrap {
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.apc-section-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--apc-gold);
+    padding: .75rem 1rem;
+    background: var(--apc-slate);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.apc-fuel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .82rem;
+    background: var(--apc-white);
+}
+
+.apc-fuel-table th {
+    background: var(--apc-off-white);
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--apc-muted);
+    padding: .5rem .875rem;
+    text-align: left;
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+.apc-fuel-table td {
+    padding: .45rem .875rem;
+    border-bottom: 1px solid var(--apc-rule);
+    color: var(--apc-text);
+}
+
+.apc-fuel-table tbody tr:last-child td { border-bottom: none; }
+.apc-fuel-table tbody tr:hover { background: var(--apc-off-white); }
+
+.apc-fuel-table tfoot td {
+    background: var(--apc-slate);
+    color: var(--apc-gold-rule);
+    border-top: 2px solid rgba(255,255,255,.12);
+    border-bottom: none;
+    font-weight: 600;
+}
+
+/* ─── Tech stops notice ───────────────────────────────── */
+.apc-tech-stops-notice {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: var(--apc-r-sm);
+    padding: .75rem 1rem;
+    font-size: .85rem;
+    color: #92400e;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* ─── Iframe section ──────────────────────────────────── */
+.apc-iframe-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    background: var(--apc-off-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm) var(--apc-r-sm) 0 0;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.apc-iframe-title {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--apc-slate-mid);
+}
+
+.apc-iframe-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem;
+    color: var(--apc-stone);
+    font-size: .875rem;
+    background: var(--apc-white);
+}
+
+.apc-calc-cta {
+    text-align: center;
+    padding: 1.25rem 0 .5rem;
+    border-top: 1px solid var(--apc-rule);
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    .apc-stats-bar { flex-direction: column; }
+    .apc-stat-pill { border-right: none; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .apc-stat-pill--link { justify-content: flex-start; }
+    .apc-fuel-table { font-size: .75rem; }
+    .apc-fuel-table th, .apc-fuel-table td { padding: .4rem .6rem; }
+}
+
+/* ─── Results Wrap ──────────────────────────────── */
+.apc-results-wrap {
+    border-top: 2px solid var(--apc-gold-rule);
+    margin-top: 1.25rem;
+    animation: apc-slide-in .3s ease both;
+}
+
+.apc-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--apc-rule);
+    margin-bottom: 1.25rem;
+}
+
+.apc-results-route {
+    font-family: var(--apc-f-serif);
+    font-size: 1.4rem;
+    color: var(--apc-ink);
+    font-weight: 400;
+}
+
+/* ─── Stats Sections ────────────────────────────── */
+.apc-stats-section {
+    margin-bottom: 1.25rem;
+}
+
+.apc-section-title {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+    margin-bottom: .875rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+.apc-stat__sub {
+    font-size: .62rem;
+    color: var(--apc-gold);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-top: .15rem;
+}
+
+/* ─── Price Section ─────────────────────────────── */
+.apc-results-section--price {
+    background: var(--apc-slate);
+    border-radius: var(--apc-r-sm);
+    padding: 1.5rem;
+    margin-top: 1.25rem;
+}
+
+/* ─── Results wrap ────────────────────────────────── */
+.apc-results-wrap {
+    border-top: 2px solid var(--apc-gold-rule);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    animation: apc-slide-in .3s ease both;
+}
+
+.apc-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.apc-results-route {
+    font-family: var(--apc-f-serif);
+    font-size: 1.3rem;
+    color: var(--apc-ink);
+    font-weight: 400;
+}
+
+/* ─── Stat sub-label ───────────────────────────────── */
+.apc-stat__sub {
+    font-size: .65rem;
+    color: var(--apc-stone);
+    margin-top: .15rem;
+    min-height: .9rem;
+}
+
+/* ─── Price section (dark) ─────────────────────────── */
+.apc-price-section {
+    background: var(--apc-slate);
+    border-radius: var(--apc-r-sm);
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* ─── CTA ──────────────────────────────────────────── */
+.apc-calc-cta {
+    text-align: center;
+    padding: 1.25rem 0 .25rem;
+}
+
+/* ─── Advanced grid ────────────────────────────────── */
+.apc-advanced-panel {
+    background: var(--apc-off-white);
+    border: 1.5px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    padding: 1.25rem;
+    margin-top: .75rem;
+}
+
+.apc-advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.apc-field-hint {
+    font-size: .68rem;
+    color: var(--apc-stone);
+    margin: .25rem 0 0;
+    line-height: 1.4;
+}
+
+/* ─── Secondary button ─────────────────────────────── */
+.apc-btn--secondary {
+    background: transparent;
+    color: var(--apc-slate-mid);
+    border: 1.5px solid var(--apc-rule);
+}
+
+.apc-btn--secondary:hover {
+    border-color: var(--apc-gold);
+    color: var(--apc-gold);
+    background: var(--apc-gold-pale);
+}
+
+@keyframes apc-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Results header bar ─────────────────────────── */
+.apc-results__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+    padding: 1rem 0 .875rem;
+    border-bottom: 1px solid var(--apc-rule);
+    margin-bottom: 1rem;
+}
+
+.apc-results__route {
+    font-family: var(--apc-f-serif);
+    font-size: 1.35rem;
+    color: var(--apc-ink);
+    font-weight: 400;
+    letter-spacing: .01em;
+}
+
+.apc-results__section {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+.apc-results__section:last-child { border-bottom: none; }
+
+.apc-results__section-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+    margin-bottom: .875rem;
+}
+
+/* Subtle sub-label on stat cards */
+.apc-stat__sub {
+    font-size: .6rem;
+    color: var(--apc-stone);
+    margin-top: .15rem;
+    font-style: italic;
+}
+
+/* ─── Results panel ───────────────────────────────── */
+.apc-results-panel {
+    border-top: 2px solid var(--apc-gold);
+    animation: apc-slide-in .3s ease both;
+}
+
+.apc-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .875rem;
+    padding: 1rem 1.75rem;
+    background: var(--apc-slate);
+}
+
+.apc-results-header__route {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+}
+
+.apc-results-header__from,
+.apc-results-header__to {
+    font-family: var(--apc-f-serif);
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+}
+
+.apc-results-header__arrow {
+    color: rgba(255,255,255,.4);
+    font-size: 1.25rem;
+}
+
+.apc-results-header__meta {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    font-size: .8rem;
+    color: rgba(255,255,255,.5);
+}
+
+/* Sub-labels under stat values */
+.apc-stat__sub {
+    font-size: .68rem;
+    color: var(--apc-stone);
+    margin-top: .2rem;
+    min-height: .9rem;
+}
+
+/* Section title inside results */
+.apc-results__section-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--apc-gold);
+}
+
+/* Fuel detail table wrapper */
+.apc-fuel-table {
+    background: var(--apc-white);
+    border: 1px solid var(--apc-rule);
+    border-radius: var(--apc-r-sm);
+    overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .apc-results-header { flex-direction: column; align-items: flex-start; }
+    .apc-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Results header ICAO badges */
+.apc-results-header__icao {
+    font-family: var(--apc-f-serif);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--apc-gold-rule);
+    letter-spacing: .02em;
+}
+
+/* ─── Route map ───────────────────────────────────── */
+#res-map-wrap {
+    border-bottom: 1px solid var(--apc-rule);
+}
+
+#res-map {
+    z-index: 0; /* keep below dropdowns */
+}
+
+/* Leaflet marker label override */
+.leaflet-div-icon { background: none !important; border: none !important; }
+
+
+/* ════════════════════════════════════════════
+   HIDE: Advanced Settings button
+   HIDE: Price & Route / Route Only tab buttons
+   Use high-specificity selectors to override
+   any theme CSS that might conflict.
+════════════════════════════════════════════ */
+.apc-widget .apc-advanced-toggle,
+.apc-widget .apc-advanced-toggle:hover,
+button.apc-advanced-toggle {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.apc-widget .apc-mode-tabs,
+.apc-widget__header .apc-mode-tabs,
+div.apc-mode-tabs {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM BRANDING OVERRIDES
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Widget header background: #144D41 */
+.apc-widget__header,
+.apc-results-header,
+.apc-quickstats,
+#apc-quickstats,
+.apc-results-panel .apc-results-header {
+    background: #144D41 !important;
+}
+
+/* 2. Widget title font colour: #FFFFFF */
+.apc-widget__title {
+    color: #ffffff !important;
+}
+
+/* 3. Widget title font: Montserrat (load from Google Fonts) */
+
+.apc-widget__title,
+.apc-widget .apc-widget__title {
+    font-family: inherit;
+}
+
+/* ─── Custom branding overrides ──────────────────── */
+
+/* 1. Header background: #292524 → #144D41 */
+.apc-widget__header,
+.apc-results-header,
+.apc-results__section--price,
+#apc-quickstats {
+    background: #144D41 !important;
+    background-image: none !important;
+}
+
+/* Route header bar (dark bar with ICAO codes) */
+.apc-results-panel .apc-results-header {
+    background: #144D41 !important;
+}
+
+/* Stat cards dark background */
+.apc-results-panel .apc-stats-grid {
+    background: #144D41 !important;
+}
+.apc-results-panel .apc-results__section--price {
+    background: #144D41 !important;
+}
+
+/* 2. Widget title & header text: → #FFFFFF */
+.apc-widget__title,
+.apc-widget__header,
+.apc-widget__header * {
+    color: #FFFFFF !important;
+}
+
+/* 3. Heading font: DM Serif Display → Montserrat */
+
+.apc-widget .apc-widget__title,
+.apc-widget .apc-results-header__icao,
+.apc-widget .apc-price-hero__value,
+.apc-widget .apc-stat__value,
+.apc-widget h1, .apc-widget h2, .apc-widget h3, .apc-widget h4 {
+    font-family: inherit;
 }
