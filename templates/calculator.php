@@ -1,6 +1,5 @@
 <?php defined( 'ABSPATH' ) || exit;
 $show_price = isset( $a['show_price'] ) ? $a['show_price'] !== 'no' : true;
-$api_key    = get_option( 'apc_api_key', '' );
 ?>
 <div class="apc-widget apc-calc" data-widget="calculator">
 
@@ -9,22 +8,13 @@ $api_key    = get_option( 'apc_api_key', '' );
             <svg class="apc-widget__svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 19l-7-7 1.5-1.5 5.5 2L19 5l1.5 1.5z"/></svg>
             <h3 class="apc-widget__title"><?php echo esc_html( $a['title'] ); ?></h3>
         </div>
-        <div style="display:flex;align-items:center;gap:.75rem">
-            <a href="https://aviapages.com/charter-flight-calculator/" target="_blank" rel="noopener"
-               class="apc-btn apc-btn--secondary" style="font-size:.72rem;padding:.35rem .875rem">
-                ↗ Open Full Calculator
-            </a>
-        </div>
+        <?php /* Price & Route / Route Only tabs hidden by design */ ?>
     </div>
 
-    <div class="apc-widget__body" style="padding:0">
+    <div class="apc-widget__body">
 
-        <!-- ═══════════════════════════════════════════
-             QUICK FORM — collects inputs, then redirects
-             to AviaPages calculator with pre-filled data
-             via URL parameters (their calculator reads them)
-        ═══════════════════════════════════════════ -->
-        <div class="apc-form" style="padding:1.5rem 1.75rem" id="apc-calc-form">
+        <!-- FORM -->
+        <div class="apc-form">
 
             <div class="apc-form__row">
                 <div class="apc-form__field apc-form__field--grow">
@@ -33,8 +23,9 @@ $api_key    = get_option( 'apc_api_key', '' );
                         <input class="apc-input apc-airport-input" type="text"
                                placeholder="City, airport or ICAO…" data-field="from" autocomplete="off" />
                         <input type="hidden" class="apc-airport-icao" name="from_icao" />
-                        <input type="hidden" class="apc-airport-name-full" name="from_name" />
                         <input type="hidden" class="apc-airport-tz"   name="from_tz" />
+                        <input type="hidden" class="apc-airport-lat"  name="from_lat" />
+                        <input type="hidden" class="apc-airport-lng"  name="from_lng" />
                         <div class="apc-ac-tag" style="display:none"></div>
                         <ul class="apc-ac-list" role="listbox"></ul>
                     </div>
@@ -48,8 +39,9 @@ $api_key    = get_option( 'apc_api_key', '' );
                         <input class="apc-input apc-airport-input" type="text"
                                placeholder="City, airport or ICAO…" data-field="to" autocomplete="off" />
                         <input type="hidden" class="apc-airport-icao" name="to_icao" />
-                        <input type="hidden" class="apc-airport-name-full" name="to_name" />
                         <input type="hidden" class="apc-airport-tz"   name="to_tz" />
+                        <input type="hidden" class="apc-airport-lat"  name="to_lat" />
+                        <input type="hidden" class="apc-airport-lng"  name="to_lng" />
                         <div class="apc-ac-tag" style="display:none"></div>
                         <ul class="apc-ac-list" role="listbox"></ul>
                     </div>
@@ -65,8 +57,7 @@ $api_key    = get_option( 'apc_api_key', '' );
                 </div>
                 <div class="apc-form__field apc-form__field--sm">
                     <label class="apc-label" for="apc-time">
-                        Local Time
-                        <span class="apc-tz-label" id="apc-tz-label"></span>
+                        Local Time <span class="apc-tz-label" id="apc-tz-label"></span>
                     </label>
                     <input class="apc-input" id="apc-time" name="time" type="time" value="09:00" />
                 </div>
@@ -75,7 +66,7 @@ $api_key    = get_option( 'apc_api_key', '' );
                     <input class="apc-input" id="apc-pax" name="pax" type="number" value="4" min="1" max="500" />
                 </div>
                 <div class="apc-form__field apc-form__field--grow">
-                    <label class="apc-label" for="apc-profile-search">Aircraft Type</label>
+                    <label class="apc-label" for="apc-profile-search">Aircraft Type <span class="apc-req">*</span></label>
                     <div class="apc-ac-wrap">
                         <input class="apc-input" id="apc-profile-search" type="text"
                                placeholder="Search jet type…" autocomplete="off" />
@@ -87,19 +78,18 @@ $api_key    = get_option( 'apc_api_key', '' );
             </div>
 
             <div class="apc-form__row apc-form__row--submit">
-                <button class="apc-btn apc-btn--primary apc-calc-submit" type="button">
+                <button class="apc-btn apc-btn--primary apc-calc-submit" type="button" data-mode="price">
                     <span class="apc-btn__text">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:.3rem"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                        Calculate Flight &amp; Price
+                        Calculate Flight
                     </span>
                     <span class="apc-btn__loading" style="display:none">
-                        <span class="apc-spinner"></span>&ensp;Loading…
+                        <span class="apc-spinner"></span>&ensp;Calculating…
                     </span>
                 </button>
-                <button class="apc-btn apc-btn--secondary apc-advanced-toggle" type="button">⚙ Advanced</button>
+                <?php /* Advanced Settings button hidden by design */ ?>
             </div>
 
-            <!-- Advanced panel -->
             <div class="apc-advanced-panel" style="display:none">
                 <div class="apc-advanced-grid">
                     <div class="apc-form__field">
@@ -108,74 +98,131 @@ $api_key    = get_option( 'apc_api_key', '' );
                             <option value="">Disabled</option>
                             <option value="1">Enabled</option>
                         </select>
+                        <p class="apc-field-hint">Extended-range twin-engine ops</p>
                     </div>
                     <div class="apc-form__field">
                         <label class="apc-label" for="apc-payload">Custom Payload (kg)</label>
                         <input class="apc-input" id="apc-payload" name="payload_kg" type="number" placeholder="e.g. 500" min="0" />
+                        <p class="apc-field-hint">Additional cargo weight</p>
                     </div>
                     <div class="apc-form__field">
                         <label class="apc-label" for="apc-extrafuel">Extra Fuel (kg)</label>
                         <input class="apc-input" id="apc-extrafuel" name="extra_fuel_kg" type="number" placeholder="e.g. 200" min="0" />
+                        <p class="apc-field-hint">Reserve or ferry fuel</p>
                     </div>
                 </div>
             </div>
 
         </div><!-- /.apc-form -->
 
-        <!-- Error alert -->
-        <div class="apc-alert apc-alert--error" style="display:none;margin:0 1.75rem 1rem"></div>
+        <div class="apc-alert apc-alert--error" style="display:none"></div>
 
         <!-- ═══════════════════════════════════════════
-             RESULTS: Embedded AviaPages calculator
-             The iframe loads the full calculator at
-             aviapages.com with our pre-filled values.
-             This gives users the complete experience:
-             map, route, fuel table, price breakdown.
+             RESULTS PANEL
+             All IDs must match what renderResults() in
+             charter.js writes to. Nested API structure:
+               f.time  → flight times & distances
+               f.fuel  → fuel totals & detail segments
+               f.airport → airport codes
+               f.aircraft → aircraft name
         ═══════════════════════════════════════════ -->
-        <div id="apc-iframe-section" style="display:none">
+        <div class="apc-results-panel" id="apc-results-panel" style="display:none">
 
-            <!-- Thin info bar above iframe -->
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;padding:.875rem 1.75rem;background:#292524;border-top:2px solid #b45309">
-                <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
-                    <span style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.45)">Route</span>
-                    <span id="apc-route-label" style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#fcd34d">—</span>
-                    <span id="apc-date-label" style="font-size:.8rem;color:rgba(255,255,255,.55)"></span>
-                    <span id="apc-pax-label" style="font-size:.8rem;color:rgba(255,255,255,.55)"></span>
+            <!-- Route header bar -->
+            <div class="apc-results-header">
+                <div class="apc-results-header__route">
+                    <span class="apc-results-header__icao" id="res-from">—</span>
+                    <span class="apc-results-header__arrow">→</span>
+                    <span class="apc-results-header__icao" id="res-to">—</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:.75rem">
-                    <a id="apc-open-tab" href="#" target="_blank" rel="noopener"
-                       class="apc-btn apc-btn--gold" style="font-size:.75rem;padding:.4rem 1rem">
-                        ↗ Open in New Tab
-                    </a>
-                    <button id="apc-back-btn" class="apc-btn apc-btn--secondary" type="button"
-                            style="font-size:.75rem;padding:.4rem 1rem">
-                        ← Edit Form
-                    </button>
+                <div class="apc-results-header__meta">
+                    <span id="res-aircraft-label" style="font-weight:500"></span>
+                    <span id="res-date-label" style="color:rgba(255,255,255,.5);font-size:.8rem"></span>
                 </div>
+                <a id="res-aviapages-link" href="#" target="_blank" rel="noopener"
+                   class="apc-btn apc-btn--gold" style="font-size:.72rem;padding:.4rem .875rem;display:none">
+                    Full Results on AviaPages ↗
+                </a>
             </div>
 
-            <!-- The iframe — loads AviaPages calculator with inputs pre-filled -->
-            <div style="position:relative;min-height:200px">
-                <div id="apc-iframe-loading"
-                     style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;z-index:2;padding:2rem;font-family:'DM Sans',sans-serif;color:#78716c;font-size:.9rem">
-                    <span class="apc-spinner" style="margin-right:.6rem"></span>
-                    Loading AviaPages calculator…
-                </div>
-                <iframe id="apc-results-iframe"
-                        src=""
-                        style="width:100%;height:900px;border:none;display:block;background:#fff"
-                        allowfullscreen
-                        title="AviaPages Flight Calculator">
-                </iframe>
+            <!-- Map — lazy-loads Leaflet via CDN, draws great-circle route arc -->
+            <div id="res-map-wrap" style="display:none;border-bottom:1px solid var(--apc-rule)">
+                <div id="res-map" style="width:100%;height:340px;min-height:340px;background:#dce9f5;position:relative;z-index:0"></div>
             </div>
 
+            <!-- 4 stat cards -->
+            <div class="apc-stats-grid" style="padding:1.25rem 1.75rem">
+
+                <div class="apc-stat">
+                    <div class="apc-stat__icon">⏱</div>
+                    <div class="apc-stat__label">Flight Time <small style="font-weight:400">(wind-adjusted)</small></div>
+                    <div class="apc-stat__value" id="res-flight-time">—</div>
+                    <div class="apc-stat__sub" id="res-airway-time"></div>
+                </div>
+
+                <div class="apc-stat">
+                    <div class="apc-stat__icon">📍</div>
+                    <div class="apc-stat__label">Airway Distance</div>
+                    <div class="apc-stat__value" id="res-distance">—</div>
+                    <div class="apc-stat__sub" id="res-gc-distance"></div>
+                </div>
+
+                <div class="apc-stat">
+                    <div class="apc-stat__icon">⛽</div>
+                    <div class="apc-stat__label">Est. Fuel <small style="font-weight:400">(wind-adjusted)</small></div>
+                    <div class="apc-stat__value" id="res-fuel">—</div>
+                    <div class="apc-stat__sub" id="res-fuel-sub"></div>
+                </div>
+
+                <div class="apc-stat">
+                    <div class="apc-stat__icon">🌬</div>
+                    <div class="apc-stat__label">Wind Impact</div>
+                    <div class="apc-stat__value" id="res-wind">—</div>
+                    <div class="apc-stat__sub" id="res-wind-sub"></div>
+                </div>
+
+            </div>
+
+            <!-- Fuel detail breakdown toggle -->
+            <div style="padding:0 1.75rem .875rem;display:flex;align-items:center;gap:.75rem">
+                <button id="res-fuel-toggle" class="apc-btn apc-btn--secondary"
+                        type="button" style="font-size:.75rem;padding:.4rem .875rem;display:none">
+                    ▼ Show Fuel Breakdown by Phase
+                </button>
+            </div>
+
+            <div id="res-fuel-detail" style="display:none;padding:0 1.75rem 1.25rem">
+                <div class="apc-results__section-title" style="margin-bottom:.75rem">⛽ Fuel by Flight Phase</div>
+                <div class="apc-fuel-table" id="res-fuel-table"></div>
+            </div>
+
+            <!-- Tech stops -->
+            <div id="res-stops" style="display:none;padding:.875rem 1.75rem;border-top:1px solid var(--apc-rule)">
+                <span class="apc-label-small">Technical Stops Required:</span>
+                <span id="res-stops-list" style="font-size:.85rem;margin-left:.5rem;color:var(--apc-error)"></span>
+            </div>
+
+            <!-- Price section -->
             <?php if ( $show_price ) : ?>
-            <div style="text-align:center;padding:1.25rem;border-top:1px solid #e7e5e4;background:#fafaf9">
-                <a href="#apc-charter-form" class="apc-btn apc-btn--primary">Request This Charter Flight →</a>
+            <div class="apc-results__section apc-results__section--price" id="res-price-section" style="display:none">
+                <div class="apc-price-hero">
+                    <div class="apc-price-hero__label">Estimated Charter Price</div>
+                    <div class="apc-price-hero__value" id="res-price-total">—</div>
+                    <div class="apc-price-hero__note">Includes operator fees &amp; your commission</div>
+                </div>
+                <div class="apc-price-breakdown">
+                    <div class="apc-breakdown-row"><span>Base aircraft cost</span><span id="res-base-price">—</span></div>
+                    <div class="apc-breakdown-row"><span>Airport &amp; handling fees</span><span id="res-fees">—</span></div>
+                    <div class="apc-breakdown-row"><span>Overflight &amp; taxes</span><span id="res-taxes">—</span></div>
+                    <div class="apc-breakdown-row apc-breakdown-row--total"><span>Total (incl. commission)</span><span id="res-total-final">—</span></div>
+                </div>
+                <div class="apc-price-cta">
+                    <a href="#apc-charter-form" class="apc-btn apc-btn--primary">Request This Charter Flight →</a>
+                </div>
             </div>
             <?php endif; ?>
 
-        </div><!-- /#apc-iframe-section -->
+        </div><!-- /#apc-results-panel -->
 
     </div><!-- /.apc-widget__body -->
 </div>
