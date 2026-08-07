@@ -3,7 +3,7 @@
  * Plugin Name:       AviaPages Charter Suite
  * Plugin URI:        https://aviapages.com/aviapages_api/
  * Description:       Production-ready private jet charter suite. Secure server-side proxy to AviaPages APIs — chained Flight & Price Calculator, Airport Autocomplete, Aircraft Search, Empty Legs board, and Charter Request form with lead capture.
- * Version:           2.0.0
+ * Version:           2.0.2
  * Author:            AviaPages Charter Suite
  * Author URI:        https://aviapages.com/
  * License:           GPL-2.0-or-later
@@ -17,7 +17,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /* ── Constants ───────────────────────────────────────────── */
-define( 'APC_VERSION',  '2.0.0' );
+define( 'APC_VERSION',  '2.0.2' );
 define( 'APC_DIR',      plugin_dir_path( __FILE__ ) );
 define( 'APC_URL',      plugin_dir_url( __FILE__ ) );
 define( 'APC_API_BASE', 'https://api.aviapages.com/v3' );
@@ -49,6 +49,22 @@ add_action( 'plugins_loaded', static function () {
 
 /* ── Front-end assets ────────────────────────────────────── */
 add_action( 'wp_enqueue_scripts', static function () {
+    // Only load assets on pages that actually contain a charter widget.
+    if ( ! is_singular() ) {
+        return;
+    }
+    global $post;
+    $has_widget = false;
+    foreach ( [ 'aviapages_calculator', 'aviapages_aircraft', 'aviapages_empty_legs', 'aviapages_charter_form' ] as $sc ) {
+        if ( $post && has_shortcode( $post->post_content, $sc ) ) {
+            $has_widget = true;
+            break;
+        }
+    }
+    if ( ! $has_widget ) {
+        return;
+    }
+
     wp_enqueue_style(
         'apc-styles',
         APC_URL . 'assets/css/charter.css',
